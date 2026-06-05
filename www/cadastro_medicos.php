@@ -18,92 +18,104 @@
 $operadorNome  = "Dr. João Silva";
 $operadorEmail = "joao.silva@clinica.com";
 
-/* ============================================================
-   PROCESSAMENTO DE AÇÕES (POST)
-   TODO: Implementar as ações ao integrar com o banco de dados
-
-   Estrutura esperada para receber via $_POST:
-   - acao           : 'novo' | 'editar' | 'excluir'
-   - id             : int    (apenas para editar/excluir)
-   - nome           : string
-   - crm            : string
-   - especialidade  : string
-   - telefone       : string
-   - email          : string
-   - status         : 'Ativo' | 'Inativo'
-
-   Exemplo futuro:
-   if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-       $acao = isset($_POST['acao']) ? $_POST['acao'] : '';
-       if ($acao === 'novo') {
-           // INSERT INTO medicos (nome, crm, especialidade, telefone, email, status)
-           //                     VALUES (?, ?, ?, ?, ?, ?)
-       } elseif ($acao === 'editar') {
-           // UPDATE medicos SET nome=?, crm=?, especialidade=?, telefone=?, email=?, status=?
-           //              WHERE id = ?
-       } elseif ($acao === 'excluir') {
-           // DELETE FROM medicos WHERE id = ?
-           // OU UPDATE medicos SET status = 'Inativo' WHERE id = ? (exclusão lógica)
-       }
-       header("Location: cadastro_medicos.php");
-       exit;
-   }
-============================================================ */
+// Conexão com o banco
+require_once __DIR__ . '/conexao.php';
 
 /* ============================================================
-   FILTROS DE BUSCA
-   TODO: Usar estes valores para montar a query no banco
-   Exemplo: WHERE (nome LIKE :nome OR :nome IS NULL)
-            AND (especialidade = :especialidade OR :especialidade IS NULL)
-            AND (status = :status OR :status IS NULL)
+   PROCESSAMENTO DE AÇÕES (POST) - CRUD com o banco
 ============================================================ */
-$filtroNome          = trim(isset($_GET['nome'])          ? $_GET['nome']          : '');
-$filtroEspecialidade = trim(isset($_GET['especialidade']) ? $_GET['especialidade'] : '');
-$filtroStatus        = trim(isset($_GET['status'])        ? $_GET['status']        : '');
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $acao = isset($_POST['acao']) ? $_POST['acao'] : '';
+    if ($acao === 'novo') {
+        $nome = trim($_POST['nome']);
+        $crm  = trim($_POST['crm']);
+        $espId = intval($_POST['especialidade']);
+        $telefone = trim($_POST['telefone']);
+        $email = trim($_POST['email']);
+        $status = isset($_POST['status']) ? $_POST['status'] : 'Ativo';
 
-/* ============================================================
-   MÉDICOS FICTÍCIOS (placeholder para visualização)
-   ⚠️ REMOVER QUANDO INTEGRAR COM O BANCO DE DADOS
-   TODO: Substituir por:
-   $medicos = buscarMedicos($filtroNome, $filtroEspecialidade, $filtroStatus);
-============================================================ */
-$medicos = array(
-    array('id' => 1, 'nome' => 'Dr. Carlos Lima',   'crm' => 'CRM/SP 12345', 'especialidade' => 'Cardiologia',   'telefone' => '(11) 91234-5678', 'email' => 'carlos.lima@clinica.com',   'status' => 'Ativo'),
-    array('id' => 2, 'nome' => 'Dra. Ana Paula',    'crm' => 'CRM/SP 23456', 'especialidade' => 'Dermatologia',  'telefone' => '(11) 92345-6789', 'email' => 'ana.paula@clinica.com',    'status' => 'Ativo'),
-    array('id' => 3, 'nome' => 'Dr. Pedro Alves',   'crm' => 'CRM/SP 34567', 'especialidade' => 'Ortopedia',     'telefone' => '(11) 93456-7890', 'email' => 'pedro.alves@clinica.com',  'status' => 'Ativo'),
-    array('id' => 4, 'nome' => 'Dra. Marina Reis',  'crm' => 'CRM/SP 45678', 'especialidade' => 'Pediatria',     'telefone' => '(11) 94567-8901', 'email' => 'marina.reis@clinica.com',  'status' => 'Ativo'),
-    array('id' => 5, 'nome' => 'Dr. Ricardo Souza', 'crm' => 'CRM/SP 56789', 'especialidade' => 'Neurologia',    'telefone' => '(11) 95678-9012', 'email' => 'ricardo.souza@clinica.com','status' => 'Inativo'),
-    array('id' => 6, 'nome' => 'Dra. Fernanda Melo','crm' => 'CRM/SP 67890', 'especialidade' => 'Ginecologia',   'telefone' => '(11) 96789-0123', 'email' => 'fernanda.melo@clinica.com','status' => 'Ativo'),
-);
+        $nome_esc = mysqli_real_escape_string($conexao_bd, $nome);
+        $crm_esc  = mysqli_real_escape_string($conexao_bd, $crm);
+        $tel_esc  = mysqli_real_escape_string($conexao_bd, $telefone);
+        $email_esc= mysqli_real_escape_string($conexao_bd, $email);
+        $sql = "INSERT INTO medicos (nome, crm, especialidade_id, telefone, email, status) VALUES ('{$nome_esc}', '{$crm_esc}', {$espId}, '{$tel_esc}', '{$email_esc}', '{$status}')";
+        mysqli_query($conexao_bd, $sql);
+    } elseif ($acao === 'editar') {
+        $id = intval($_POST['id']);
+        $nome = trim($_POST['nome']);
+        $crm  = trim($_POST['crm']);
+        $espId = intval($_POST['especialidade']);
+        $telefone = trim($_POST['telefone']);
+        $email = trim($_POST['email']);
+        $status = isset($_POST['status']) ? $_POST['status'] : 'Ativo';
 
-/* ============================================================
-   APLICAÇÃO DOS FILTROS NOS DADOS FICTÍCIOS
-   TODO: Remover este bloco ao integrar com o banco —
-         a filtragem passará a ser feita diretamente na query SQL
-============================================================ */
-if ($filtroNome !== '' || $filtroEspecialidade !== '' || $filtroStatus !== '') {
-    $medicos = array_values(array_filter($medicos, function($med) use (
-        $filtroNome, $filtroEspecialidade, $filtroStatus
-    ) {
-        if ($filtroNome !== '' && stripos($med['nome'], $filtroNome) === false) {
-            return false;
-        }
-        if ($filtroEspecialidade !== '' && $med['especialidade'] !== $filtroEspecialidade) {
-            return false;
-        }
-        if ($filtroStatus !== '' && $med['status'] !== $filtroStatus) {
-            return false;
-        }
-        return true;
-    }));
+        $nome_esc = mysqli_real_escape_string($conexao_bd, $nome);
+        $crm_esc  = mysqli_real_escape_string($conexao_bd, $crm);
+        $tel_esc  = mysqli_real_escape_string($conexao_bd, $telefone);
+        $email_esc= mysqli_real_escape_string($conexao_bd, $email);
+        $sql = "UPDATE medicos SET nome='{$nome_esc}', crm='{$crm_esc}', especialidade_id={$espId}, telefone='{$tel_esc}', email='{$email_esc}', status='{$status}' WHERE id = {$id}";
+        mysqli_query($conexao_bd, $sql);
+    } elseif ($acao === 'excluir') {
+        $id = intval($_POST['id']);
+        // exclusão lógica
+        $sql = "UPDATE medicos SET status='Inativo' WHERE id = {$id}";
+        mysqli_query($conexao_bd, $sql);
+    }
+
+    header('Location: cadastro_medicos.php');
+    exit;
 }
 
 /* ============================================================
-   ESPECIALIDADES DISPONÍVEIS
-   TODO: Substituir por consulta ao banco:
-   $especialidades = buscarEspecialidades();
+   FILTROS DE BUSCA
 ============================================================ */
-$especialidades = array('Cardiologia', 'Dermatologia', 'Ginecologia', 'Neurologia', 'Ortopedia', 'Pediatria');
+$filtroNome          = trim(isset($_GET['nome'])          ? $_GET['nome']          : '');
+$filtroEspecialidade = isset($_GET['especialidade']) ? intval($_GET['especialidade']) : 0;
+$filtroStatus        = trim(isset($_GET['status'])        ? $_GET['status']        : '');
+
+/* ============================================================
+   Carrega especialidades do banco
+============================================================ */
+$especialidades = array();
+$res = mysqli_query($conexao_bd, "SELECT id, nome FROM especialidades ORDER BY nome");
+if ($res) {
+    while ($row = mysqli_fetch_assoc($res)) {
+        $especialidades[] = $row;
+    }
+    mysqli_free_result($res);
+}
+
+/* ============================================================
+   Consulta de médicos com filtros aplicados
+============================================================ */
+$medicos = array();
+$sql = "SELECT m.id, m.nome, m.crm, e.id AS especialidade_id, e.nome AS especialidade, m.telefone, m.email, m.status
+        FROM medicos m
+        JOIN especialidades e ON e.id = m.especialidade_id";
+
+// montar condições de forma segura (escape)
+$conds = array();
+if ($filtroNome !== '') {
+    $conds[] = "m.nome LIKE '%" . mysqli_real_escape_string($conexao_bd, $filtroNome) . "%'";
+}
+if ($filtroEspecialidade) {
+    $conds[] = "m.especialidade_id = " . intval($filtroEspecialidade);
+}
+if ($filtroStatus !== '') {
+    $conds[] = "m.status = '" . mysqli_real_escape_string($conexao_bd, $filtroStatus) . "'";
+}
+if (!empty($conds)) {
+    $sql .= ' WHERE ' . implode(' AND ', $conds);
+}
+$sql .= ' ORDER BY m.nome ASC';
+
+$resAll = mysqli_query($conexao_bd, $sql);
+if ($resAll) {
+    while ($row = mysqli_fetch_assoc($resAll)) {
+        $medicos[] = $row;
+    }
+    mysqli_free_result($resAll);
+}
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -489,9 +501,9 @@ $especialidades = array('Cardiologia', 'Dermatologia', 'Ginecologia', 'Neurologi
                         <select class="form-select form-select-sm" id="filtroEspecialidade" name="especialidade">
                             <option value="">Todas</option>
                             <?php foreach ($especialidades as $esp): ?>
-                                <option value="<?php echo htmlspecialchars($esp) ?>"
-                                    <?php echo ($filtroEspecialidade === $esp) ? 'selected' : '' ?>>
-                                    <?php echo htmlspecialchars($esp) ?>
+                                <option value="<?php echo intval($esp['id']) ?>"
+                                    <?php echo ($filtroEspecialidade === intval($esp['id'])) ? 'selected' : '' ?>>
+                                    <?php echo htmlspecialchars($esp['nome']) ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>
@@ -586,12 +598,12 @@ $especialidades = array('Cardiologia', 'Dermatologia', 'Ginecologia', 'Neurologi
                                 <td><span class="badge-status <?php echo $classeBadge ?>"><?php echo htmlspecialchars($med['status']) ?></span></td>
                                 <td class="text-center" style="white-space:nowrap;">
                                     <!-- TODO: passar dados reais para o modal de edição -->
-                                    <button class="btn btn-sm btn-outline-primary py-0 px-2 btn-editar"
+                                        <button class="btn btn-sm btn-outline-primary py-0 px-2 btn-editar"
                                             title="Editar"
                                             data-id="<?php echo $med['id'] ?>"
                                             data-nome="<?php echo htmlspecialchars($med['nome']) ?>"
                                             data-crm="<?php echo htmlspecialchars($med['crm']) ?>"
-                                            data-especialidade="<?php echo htmlspecialchars($med['especialidade']) ?>"
+                                            data-especialidade="<?php echo intval($med['especialidade_id']) ?>"
                                             data-telefone="<?php echo htmlspecialchars($med['telefone']) ?>"
                                             data-email="<?php echo htmlspecialchars($med['email']) ?>"
                                             data-status="<?php echo htmlspecialchars($med['status']) ?>">
@@ -646,8 +658,7 @@ $especialidades = array('Cardiologia', 'Dermatologia', 'Ginecologia', 'Neurologi
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                 </div>
 
-                <!-- TODO: action="cadastro_medicos.php" method="POST" ao integrar com banco -->
-                <form id="formMedico">
+                <form id="formMedico" action="cadastro_medicos.php" method="POST">
                     <input type="hidden" name="acao" id="formAcao" value="novo">
                     <input type="hidden" name="id"   id="formId"   value="">
 
@@ -668,7 +679,7 @@ $especialidades = array('Cardiologia', 'Dermatologia', 'Ginecologia', 'Neurologi
                                 <select class="form-select" id="formEspecialidade" name="especialidade" required>
                                     <option value="">Selecione...</option>
                                     <?php foreach ($especialidades as $esp): ?>
-                                        <option value="<?php echo htmlspecialchars($esp) ?>"><?php echo htmlspecialchars($esp) ?></option>
+                                        <option value="<?php echo intval($esp['id']) ?>"><?php echo htmlspecialchars($esp['nome']) ?></option>
                                     <?php endforeach; ?>
                                 </select>
                                 <!-- TODO: popular via cadastro_especialidades.php -->
@@ -695,8 +706,7 @@ $especialidades = array('Cardiologia', 'Dermatologia', 'Ginecologia', 'Neurologi
 
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-                        <!-- TODO: mudar para type="submit" ao integrar com banco -->
-                        <button type="button" class="btn btn-primary" onclick="salvarMedico()">
+                        <button type="submit" class="btn btn-primary">
                             <i class="fa-solid fa-floppy-disk me-1"></i> Salvar
                         </button>
                     </div>
@@ -792,17 +802,13 @@ $especialidades = array('Cardiologia', 'Dermatologia', 'Ginecologia', 'Neurologi
                     cancelButtonText:   'Voltar'
                 }).then(function(result) {
                     if (result.isConfirmed) {
-                        // TODO: substituir pelo envio real ao banco
-                        btnExcluir.closest('tr').remove();
-                        atualizarContadorMedico();
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Excluído!',
-                            text: 'O médico foi removido do cadastro.',
-                            confirmButtonColor: '#0d6efd',
-                            timer: 2000,
-                            showConfirmButton: false
-                        });
+                        // envia POST para o servidor removendo (exclusão lógica)
+                        var f = document.createElement('form');
+                        f.method = 'POST';
+                        f.action = 'cadastro_medicos.php';
+                        var a = document.createElement('input'); a.type='hidden'; a.name='acao'; a.value='excluir';
+                        var i = document.createElement('input'); i.type='hidden'; i.name='id'; i.value=btnExcluir.dataset.id;
+                        f.appendChild(a); f.appendChild(i); document.body.appendChild(f); f.submit();
                     }
                 });
             }
@@ -823,7 +829,8 @@ $especialidades = array('Cardiologia', 'Dermatologia', 'Ginecologia', 'Neurologi
             var id            = document.getElementById('formId').value;
             var nome          = document.getElementById('formNome').value.trim();
             var crm           = document.getElementById('formCrm').value.trim();
-            var especialidade = document.getElementById('formEspecialidade').value;
+            var especialidadeId = document.getElementById('formEspecialidade').value;
+            var especialidade = document.getElementById('formEspecialidade').selectedOptions[0].text;
             var telefone      = document.getElementById('formTelefone').value.trim();
             var email         = document.getElementById('formEmail').value.trim();
             var status        = document.getElementById('formStatus').value;
@@ -844,7 +851,7 @@ $especialidades = array('Cardiologia', 'Dermatologia', 'Ginecologia', 'Neurologi
 
                     btnEditar.dataset.nome          = nome;
                     btnEditar.dataset.crm           = crm;
-                    btnEditar.dataset.especialidade = especialidade;
+                    btnEditar.dataset.especialidade = especialidadeId;
                     btnEditar.dataset.telefone      = telefone;
                     btnEditar.dataset.email         = email;
                     btnEditar.dataset.status        = status;
@@ -858,7 +865,7 @@ $especialidades = array('Cardiologia', 'Dermatologia', 'Ginecologia', 'Neurologi
                 if (semDados) semDados.closest('tr').remove();
 
                 var novoId = 'tmp-' + Date.now();
-                tbody.appendChild(criarLinhaMedico(novoId, nome, crm, especialidade, telefone, email, status, iniciais));
+                tbody.appendChild(criarLinhaMedico(novoId, nome, crm, especialidadeId, especialidade, telefone, email, status, iniciais));
                 atualizarContadorMedico();
             }
 
@@ -874,7 +881,7 @@ $especialidades = array('Cardiologia', 'Dermatologia', 'Ginecologia', 'Neurologi
         }
 
         // Cria um <tr> completo para a tabela de médicos
-        function criarLinhaMedico(id, nome, crm, especialidade, telefone, email, status, iniciais) {
+        function criarLinhaMedico(id, nome, crm, especialidadeId, especialidadeNome, telefone, email, status, iniciais) {
             var tr = document.createElement('tr');
 
             var tdId = document.createElement('td'); tdId.className = 'text-muted'; tdId.textContent = '—';
@@ -885,7 +892,7 @@ $especialidades = array('Cardiologia', 'Dermatologia', 'Ginecologia', 'Neurologi
                 '<span class="avatar-medico">' + iniciais + '</span>' + nome + '</div>';
 
             var tdCrm  = document.createElement('td'); tdCrm.textContent  = crm;
-            var tdEsp  = document.createElement('td'); tdEsp.textContent  = especialidade;
+            var tdEsp  = document.createElement('td'); tdEsp.textContent  = especialidadeNome;
             var tdTel  = document.createElement('td'); tdTel.textContent  = telefone;
             var tdMail = document.createElement('td'); tdMail.textContent = email;
 
@@ -906,7 +913,7 @@ $especialidades = array('Cardiologia', 'Dermatologia', 'Ginecologia', 'Neurologi
             btnEdit.dataset.id             = id;
             btnEdit.dataset.nome           = nome;
             btnEdit.dataset.crm            = crm;
-            btnEdit.dataset.especialidade  = especialidade;
+            btnEdit.dataset.especialidade  = especialidadeId;
             btnEdit.dataset.telefone       = telefone;
             btnEdit.dataset.email          = email;
             btnEdit.dataset.status         = status;
