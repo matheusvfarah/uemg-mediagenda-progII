@@ -78,6 +78,22 @@ services:
     networks:
       - mediagenda_net
 
+  # =====================================================
+  # Importa o schema e os dados iniciais em toda subida
+  # =====================================================
+  db-init:
+    image: mysql:8.0
+    container_name: mediagenda_db_init
+    restart: "no"
+    depends_on:
+      - mysql
+    volumes:
+      - ./script.sql:/script.sql:ro
+    command: >
+      /bin/sh -lc "until mysqladmin ping -h mysql -u root -proot123 --silent; do echo 'Aguardando MySQL...'; sleep 2; done; mysql -h mysql -u root -proot123 < /script.sql"
+    networks:
+      - mediagenda_net
+
 # =====================================================
 # Volume para persistir os dados do MySQL
 # (mesmo se o container for removido, os dados continuam)
