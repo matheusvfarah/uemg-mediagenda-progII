@@ -1,153 +1,79 @@
-# 🩺 MediAgenda
+# MediAgenda
 
-Sistema web para gerenciamento e agendamento de consultas médicas desenvolvido em PHP durante as aulas de Programação Web.
+Sistema web em PHP para agendamento de consultas médicas, com login, agenda mensal, cadastro de médicos, cadastro de especialidades e integração com MySQL/MariaDB.
 
----
+## Descrição
 
-# 🚀 Sobre o Projeto
+O projeto foi evoluído para atender ao trabalho acadêmico de Programação Web, mantendo o padrão visual do MediAgenda e integrando os módulos principais com o banco de dados.
 
-O **MediAgenda** é uma aplicação desenvolvida para auxiliar no gerenciamento de consultas médicas, permitindo:
+## Funcionalidades implementadas
 
-- 🔐 Login de usuários
-- 📅 Visualização de agenda mensal
-- 🩺 Cadastro e gerenciamento de agendamentos
-- 👨‍⚕️ Cadastro de médicos
-- 🏥 Cadastro de especialidades
-- ❌ Cancelamento de consultas
-- 📊 Dashboard moderno com calendário
+- Login de usuário com sessão.
+- Visualização da agenda mensal no painel principal.
+- CRUD de médicos com listagem, edição e inativação.
+- CRUD de especialidades com listagem, edição e inativação.
+- Cadastro de agendamentos integrado a médicos e especialidades.
+- Navegação lateral com acesso para Agenda, Agendamentos, Médicos, Especialidades e Regras do trabalho.
 
-O projeto foi desenvolvido utilizando conceitos de:
+## Tecnologias utilizadas
 
 - PHP
 - MySQL / MariaDB
 - HTML5
 - CSS3
-- Bootstrap
+- Bootstrap 5
 - JavaScript
 - SweetAlert2
 - Git e GitHub
 
----
+## Como executar
 
-# 📁 Estrutura do Projeto
+### Opção 1: com Docker
 
-```text
-mediagenda/
-│
-├── login.php
-├── principal.php
-├── redirect.php
-├── logout.php
-├── conexao.php
-├── cadastro_agendas.php
-├── cadastro_medicos.php
-├── cadastro_especialidades.php
-├── cancelar_agendamento.php
-├── script.sql
-└── README.md
+1. Abra um terminal na raiz do projeto.
+2. Suba os containers com:
+
+```bash
+docker-compose up -d --build
 ```
 
----
+3. Acesse `http://localhost:8080/login.php` no navegador.
+4. O phpMyAdmin ficará disponível em `http://localhost:8081`.
 
-# 🗄️ Banco de Dados
+### Opção 2: sem Docker
 
-O sistema utiliza MySQL/MariaDB.
+1. Import o arquivo `script.sql` no MySQL ou MariaDB.
+2. Ajuste a conexão em `www/conexao.php` se necessário.
+3. Sirva a pasta `www` com Apache, Nginx ou PHP embutido.
+4. Acesse `login.php` pela URL do servidor local.
 
-O arquivo:
+### Usuários de teste
 
-```text
-script.sql
-```
+- Usuário: `aluno` | Senha: `123456`
+- Usuário: `professor` | Senha: `professor123`
 
-contém:
+## Estrutura principal
 
-- criação do banco;
-- tabelas;
-- relacionamentos;
-- views utilizadas pelo sistema.
+- `www/login.php`
+- `www/principal.php`
+- `www/cadastro_agendas.php`
+- `www/cadastro_medicos.php`
+- `www/cadastro_especialidades.php`
+- `www/regras_trabalho.php`
+- `www/logout.php`
+- `www/conexao.php`
+- `script.sql`
 
----
-
-# ⚙️ Como Executar
-
-## 1️⃣ Criar o banco de dados
-
-Execute o arquivo:
-
-```sql
-script.sql
-```
-
-no MySQL ou MariaDB.
-
----
-
-## 2️⃣ Configurar a conexão
-
-No arquivo:
-
-```php
-conexao.php
-```
-
-configure:
-
-- servidor;
-- usuário;
-- senha;
-- banco de dados.
-
----
-
-## 3️⃣ Executar o projeto
-
-Abra o projeto em um servidor PHP e acesse:
-
-```text
-login.php
-```
-
----
-
-# 👨‍💻 Integrantes do Grupo
+## Integrantes do grupo
 
 - João Pedro de Almeida Modesto
 - Gustavo Vieira Barbosa
 - Gustavo Amaral
-- Maria Olivia Casucci
+- Maria Olivia Cassucci
 - Matheus Vicente
+- Pablo Victor
+- Victor Gmeiner
 
----
+## Observação
 
-# 📚 Objetivo Acadêmico
-
-Este projeto possui finalidade educacional e foi desenvolvido como atividade prática da disciplina de Programação Web.
-
----
-
-# 🧠 Funcionalidades Futuras
-
-- 📱 Responsividade mobile
-- 🔔 Notificações de consultas
-- 📈 Relatórios
-- 👤 Controle de perfis de acesso
-- ☁️ Publicação em nuvem
-
----
-
-# 💻 Tecnologias Utilizadas
-
-| Tecnologia | Finalidade |
-|---|---|
-| PHP | Back-end |
-| MySQL/MariaDB | Banco de dados |
-| Bootstrap | Interface |
-| JavaScript | Interatividade |
-| SweetAlert2 | Alertas modernos |
-| Git/GitHub | Versionamento |
-
----
-
-# 📌 Observação
-
-Projeto desenvolvido para fins acadêmicos e aprendizado de desenvolvimento web com PHP e banco de dados relacional.
+Este projeto foi desenvolvido para fins acadêmicos e funciona melhor com o ambiente Docker definido no repositório.
