@@ -1,5 +1,5 @@
 <?php
-    require_once("conexao.php");// importar o conexao.php para esta página
+    require_once("conexao.php");;// importar o conexao.php para esta página
     $usuario = $_POST["usuario"];
     $senha = $_POST["senha"];
 
@@ -10,7 +10,7 @@
     if(isset($usuario) && isset($senha)){
 
         //prepared statements parav evitar SQL injection, respeita o ROXO
-        $sql = "SELECT email, username, passWord_sha256 FROM usuario WHERE username = ? OR email = ?";
+        $sql = "SELECT nome, email, username, passWord_sha256 FROM usuario WHERE username = ? OR email = ?";
 
         if($stmt = mysqli_prepare($conexao_bd, $sql)){
             mysqli_stmt_bind_param($stmt, "ss", $usuario, $usuario);
@@ -18,14 +18,16 @@
             mysqli_stmt_store_result($stmt);
 
             if(mysqli_stmt_num_rows($stmt) == 1){
-                mysqli_stmt_bind_result($stmt, $email_bd, $username_bd, $passWord_sha256);
+                mysqli_stmt_bind_result($stmt, $nome_bd, $email_bd, $username_bd, $passWord_sha256);
                 mysqli_stmt_fetch($stmt);
 
                 if(hash("sha256", $senha) === $passWord_sha256){
                     //autenticado com sucesso
+
                     $_SESSION["logado"] = true;
-                    $_SESSION["username"] = $username_bd;
+                    $_SESSION["cod_usuario"] = $username_bd;
                     $_SESSION["email"] = $email_bd;
+                    $_SESSION["nome"] = $nome_bd;
 
                     echo json_encode([
                         "success" => true,
@@ -59,12 +61,4 @@
             exit;
         }
     }
-
-    //validar no banco de dados
-    //ir para página autenticada
-    //ou retornar para index
-    /*
-    echo "Cadastrar no banco o $usuario com a $senha <br>";
-
-    echo "<a href='index.php'>Retornar</a>";*/
 ?>

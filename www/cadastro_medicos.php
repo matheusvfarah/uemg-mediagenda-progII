@@ -6,193 +6,76 @@ if(!isset($_SESSION['cod_usuario'])){
     header("Location: login.php");
     exit;
 }
+
 $cod_usuario = $_SESSION['cod_usuario'];
-$nomeUsuario = "";
-$emailUsuario = "";
-$sql = "SELECT * FROM usuario WHERE cod_usuario = '$cod_usuario'";
+$nomeUsuario = $_SESSION['nome'];
+$emailUsuario = $_SESSION['email'];
 
-$result = mysqli_query($conexao_bd,$sql); //pega o resultado da query e lança num array
-
-if($consulta = mysqli_fetch_assoc($result)){ //leitura do array
-    $nomeUsuario  = $consulta['nome'];
-    $emailUsuario = $consulta['email'];
-}
-
-/* ============================================================
-   DADOS DO OPERADOR LOGADO
-   TODO: Substituir pelos dados vindos da $_SESSION
-============================================================ */
 $operadorNome  = $nomeUsuario;
 $operadorEmail = $emailUsuario;
 
-/* ============================================================
-   PROCESSAMENTO DE AÇÕES (POST)
-   TODO: Implementar as ações ao integrar com o banco de dados
+$sql = "SELECT * FROM vw_medicos WHERE 1=1"; // Já deixamos o WHERE 1=1 aqui para facilitar
 
-   Estrutura esperada para receber via $_POST:
-   - acao        : 'novo' | 'editar' | 'cancelar'
-   - id          : int  (apenas para editar/cancelar)
-   - paciente    : string
-   - medico_id   : int
-   - especialidade_id : int
-   - data        : 'YYYY-MM-DD'
-   - horario     : 'HH:MM'
-   - status      : 'Confirmado' | 'Pendente'
-*/
-echo (">>> passou 0 | " . $_SERVER['REQUEST_METHOD']);
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        echo (">>> passou 1");
-        $acao = isset($_POST['acao']) ? $_POST['acao'] : '';
-        if ($acao === 'novo') {
-            $paciente      = $_POST['paciente'];
-            $medico_id     = $_POST['medico_id'];
-            $especialidade = $_POST['especialidade'];
-            $data          = $_POST['data'];
-            $horario       = $_POST['horario'];
-            $status        = $_POST['status'];
-            $sql           = "INSERT INTO 
-                              agendamentos(paciente, medico_id, especialidade_id, data, horario, status) 
-                              VALUES('".$paciente."', ".$medico_id.", 1, '".$data."',
-                              '".$horario."', '".$status."')";
-            mysqli_query($conexao_bd, $sql) or die('ERR: '.mysql_error());
-           // INSERT INTO agendamentos (...) VALUES (...)
-        } elseif ($acao === 'editar') {
-            $paciente      = $_POST['paciente'];
-            $medico_id     = $_POST['medico_id'];
-            $especialidade = $_POST['especialidade'];
-            $data          = $_POST['data'];
-            $horario       = $_POST['horario'];
-            $status        = $_POST['status'];
-            $id_agenda     = $_POST['id'];
-            $sql = "UPDATE agendamentos SET 
-                     paciente = '".$paciente."',
-                     medico_id = ".$medico_id.",
-                     especialidade_id = 1, 
-                     data = '".$data."',
-                     horario = '".$horario."',
-                     status  = '".$status."'
-                    WHERE id = ".$id_agenda;
-            mysqli_query($conexao_bd, $sql) or die("ERR.: ".mysql_error());
-        } elseif ($acao === 'cancelar') {
-            $id_agenda     = $_POST['id'];
-            $sql = "DELETE FROM agendamentos WHERE id = ".$id_agenda;
-            mysqli_query($conexao_bd, $sql) or die("ERR.: ".mysql_error());
-           // UPDATE agendamentos SET status = 'Cancelado' WHERE id = ?
-       }
-       //header("Location: cadastro_agendas.php");
-       //exit;
-    }
-//============================================================ */
+// 1. Puxando os valores corretos baseados nos 'names' do formulário HTML
+$filtroNome          = $_GET['nome'] ?? '';
+$filtroEspecialidade = $_GET['especialidade'] ?? '';
+$filtroStatus        = $_GET['status'] ?? '';
 
-/* ============================================================
-   FILTROS DE BUSCA
-   TODO: Usar estes valores para montar a query no banco
-   Exemplo: WHERE data BETWEEN :dataInicio AND :dataFim
-            AND (medico_id = :medico OR :medico IS NULL)
-            AND (status = :status OR :status IS NULL)
-============================================================ */
-$filtroPaciente = trim(isset($_GET['paciente']) ? $_GET['paciente'] : '');
-$filtroMedico   = trim(isset($_GET['medico'])   ? $_GET['medico']   : '');
-$filtroStatus   = trim(isset($_GET['status'])   ? $_GET['status']   : '');
-$filtroDataIni  = trim(isset($_GET['data_ini']) ? $_GET['data_ini'] : '');
-$filtroDataFim  = trim(isset($_GET['data_fim']) ? $_GET['data_fim'] : '');
+// 2. Aplicando os filtros na query se eles foram preenchidos
+if ($filtroNome != '') {
+    // DICA: Usar mysqli_real_escape_string previne SQL Injection (segurança)
+    $nomeSeguro = mysqli_real_escape_string($conexao_bd, $filtroNome);
+    $sql .= " AND nome LIKE '%" . $nomeSeguro . "%'";
+}
 
-/* ============================================================
-   AGENDAMENTOS FICTÍCIOS (placeholder para visualização)
-   REMOVER QUANDO INTEGRAR COM O BANCO DE DADOS
-   TODO: Substituir por:
-   $agendamentos = buscarAgendamentos($filtroPaciente, $filtroMedico, $filtroStatus, $filtroDataIni, $filtroDataFim);
-============================================================ 
-$agendamentos = [
-    ['id' =>  1, 'data' => '2026-04-05', 'horario' => '09:00', 'paciente' => 'Maria Souza',     'medico' => 'Dr. Carlos Lima',  'especialidade' => 'Cardiologia',  'status' => 'Confirmado'],
-    ['id' =>  2, 'data' => '2026-04-08', 'horario' => '10:30', 'paciente' => 'Carlos Andrade',  'medico' => 'Dra. Ana Paula',   'especialidade' => 'Dermatologia', 'status' => 'Confirmado'],
-    ['id' =>  3, 'data' => '2026-04-08', 'horario' => '14:00', 'paciente' => 'Juliana Reis',    'medico' => 'Dr. Pedro Alves',  'especialidade' => 'Ortopedia',    'status' => 'Pendente'],
-    ['id' =>  4, 'data' => '2026-04-12', 'horario' => '08:00', 'paciente' => 'Pedro Henrique',  'medico' => 'Dra. Ana Paula',   'especialidade' => 'Dermatologia', 'status' => 'Confirmado'],
-    ['id' =>  5, 'data' => '2026-04-15', 'horario' => '11:00', 'paciente' => 'Júlia Mendes',    'medico' => 'Dr. Carlos Lima',  'especialidade' => 'Cardiologia',  'status' => 'Confirmado'],
-    ['id' =>  6, 'data' => '2026-04-15', 'horario' => '15:30', 'paciente' => 'Roberto Dias',    'medico' => 'Dr. Pedro Alves',  'especialidade' => 'Ortopedia',    'status' => 'Confirmado'],
-    ['id' =>  7, 'data' => '2026-04-15', 'horario' => '16:30', 'paciente' => 'Fernanda Costa',  'medico' => 'Dra. Marina Reis', 'especialidade' => 'Pediatria',    'status' => 'Pendente'],
-    ['id' =>  8, 'data' => '2026-04-15', 'horario' => '17:30', 'paciente' => 'Lucas Silva',     'medico' => 'Dr. Carlos Lima',  'especialidade' => 'Cardiologia',  'status' => 'Confirmado'],
-    ['id' =>  9, 'data' => '2026-04-20', 'horario' => '09:30', 'paciente' => 'Luiz Henrique',   'medico' => 'Dra. Marina Reis', 'especialidade' => 'Pediatria',    'status' => 'Confirmado'],
-    ['id' => 10, 'data' => '2026-04-23', 'horario' => '10:00', 'paciente' => 'Beatriz Ramos',   'medico' => 'Dra. Ana Paula',   'especialidade' => 'Dermatologia', 'status' => 'Pendente'],
-    ['id' => 11, 'data' => '2026-04-27', 'horario' => '14:00', 'paciente' => 'Marcos Vinícius', 'medico' => 'Dr. Pedro Alves',  'especialidade' => 'Ortopedia',    'status' => 'Confirmado'],
-];*/
-$sql = "SELECT * FROM vw_agendamentos";
+if ($filtroEspecialidade != '') {
+    $espSegura = mysqli_real_escape_string($conexao_bd, $filtroEspecialidade);
+    $sql .= " AND especialidade LIKE '%" . $espSegura . "%'";
+}
+
+if ($filtroStatus != '') {
+    $statusSeguro = mysqli_real_escape_string($conexao_bd, $filtroStatus);
+    $sql .= " AND status = '" . $statusSeguro . "'";
+}
+
+// 3. Só agora executamos a query
 $result = mysqli_query($conexao_bd, $sql);
-while ($row = mysqli_fetch_assoc($result)) {
-    $agendamentos[] = [
-        'id'            => $row['id'],
-        'data'          => $row['data'],
-        'horario'       => $row['horario'],
-        'paciente'      => $row['paciente'],
-        'medico'        => $row['medico'],
-        'especialidade' => $row['especialidade'],
-        'status'        => $row['status']
-    ];
+
+$medicos = [];
+
+if ($result) {
+    while ($row = mysqli_fetch_assoc($result)) {
+        $medicos[] = $row;
+    }
+} else {
+    echo "Erro ao buscar médicos: " . mysqli_error($conexao_bd);
+    exit;
 }
 
 
-/* ============================================================
-   APLICAÇÃO DOS FILTROS NOS DADOS FICTÍCIOS
-   TODO: Remover este bloco ao integrar com o banco —
-         a filtragem passará a ser feita diretamente na query SQL
-============================================================ */
-if ($filtroPaciente !== '' || $filtroMedico !== '' || $filtroStatus !== ''
-    || $filtroDataIni !== '' || $filtroDataFim !== '') {
-
-    $agendamentos = array_values(array_filter($agendamentos, function($ag) use (
-        $filtroPaciente, $filtroMedico, $filtroStatus, $filtroDataIni, $filtroDataFim
-    ) {
-        if ($filtroPaciente !== '' && stripos($ag['paciente'], $filtroPaciente) === false) {
-            return false;
-        }
-        if ($filtroMedico !== '' && $ag['medico'] !== $filtroMedico) {
-            return false;
-        }
-        if ($filtroStatus !== '' && $ag['status'] !== $filtroStatus) {
-            return false;
-        }
-        if ($filtroDataIni !== '' && $ag['data'] < $filtroDataIni) {
-            return false;
-        }
-        if ($filtroDataFim !== '' && $ag['data'] > $filtroDataFim) {
-            return false;
-        }
-        return true;
-    }));
-}
-
-/* ============================================================
-   MÉDICOS DISPONÍVEIS
-   TODO: Substituir por consulta ao banco:
-   $medicos = buscarMedicos();
-============================================================ */
-$medicos = [
-    ['id' => 1, 'nome' => 'Dr. Carlos Lima',  'especialidade' => 'Cardiologia'],
-    ['id' => 2, 'nome' => 'Dra. Ana Paula',   'especialidade' => 'Dermatologia'],
-    ['id' => 3, 'nome' => 'Dr. Pedro Alves',  'especialidade' => 'Ortopedia'],
-    ['id' => 4, 'nome' => 'Dra. Marina Ana Reis', 'especialidade' => 'Pediatria'],
-];
 ?>
+
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MediAgenda - Cadastro de Agendas</title>
-
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>MediAgenda - Cadastro de médicos</title>
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="img/favicon.ico">
 
     <!-- ================ CDNs ================ -->
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
-          integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
     <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-
-    <!-- ================ ESTILOS DA APLICAÇÃO ================ -->
-    <style>
-        :root {
+</head>
+<style>
+:root {
             --azul-primario: #0d6efd;
             --azul-escuro:   #084298;
             --azul-claro:    #e7f1ff;
@@ -456,12 +339,9 @@ $medicos = [
             margin-bottom: 4px;
         }
     </style>
-</head>
-<body>
+</style>
 
-    <!-- ==================================================
-         NAVBAR SUPERIOR
-    ================================================== -->
+<body>
     <nav class="navbar-topo d-flex align-items-center justify-content-between px-3">
         <div class="d-flex align-items-center gap-2">
             <button class="btn-sanduiche" id="btnSanduiche" title="Menu">
@@ -488,20 +368,16 @@ $medicos = [
             </ul>
         </div>
     </nav>
-
-    <!-- ==================================================
-         SIDEBAR LATERAL
-    ================================================== -->
     <aside class="sidebar" id="sidebar">
         <ul class="nav flex-column">
             <li class="nav-item">
                 <a class="nav-link" href="principal.php"><i class="fa-solid fa-calendar-days"></i> Calendário</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link ativo" href="cadastro_agendas.php"><i class="fa-solid fa-calendar-plus"></i> Agendamentos</a>
+                <a class="nav-link" href="cadastro_agendas.php"><i class="fa-solid fa-calendar-plus"></i> Agendamentos</a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" href="cadastro_medicos.php"><i class="fa-solid fa-user-doctor"></i> Cadastro de Médicos</a>
+                <a class="nav-link ativo" href="cadastro_medicos.php"><i class="fa-solid fa-user-doctor"></i> Cadastro de Médicos</a>
             </li>
             <li class="nav-item">
                 <a class="nav-link" href="cadastro_especialidades.php"><i class="fa-solid fa-list-check"></i> Cadastro de Especialidades</a>
@@ -509,156 +385,116 @@ $medicos = [
         </ul>
     </aside>
 
-    <!-- Overlay para mobile -->
     <div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-    <!-- ==================================================
-         CONTEÚDO PRINCIPAL
-    ================================================== -->
-    <main class="conteudo-principal" id="conteudoPrincipal">
+<main class="conteudo-principal" id="conteudoPrincipal">
 
-        <!-- Cabeçalho da página -->
         <div class="page-header">
-            <h2><i class="fa-solid fa-calendar-days"></i> Cadastro de Agendas</h2>
-            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalFormAgenda">
-                <i class="fa-solid fa-plus me-1"></i> Novo Agendamento
+            <h2><i class="fa-solid fa-user-doctor"></i> Cadastro de Médicos</h2>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalFormMedico">
+                <i class="fa-solid fa-plus me-1"></i> Novo Médico
             </button>
         </div>
 
-        <!-- ============================================================
-             FILTROS DE BUSCA
-             TODO: ao submeter, os valores serão enviados via GET e usados
-             para filtrar a consulta ao banco de dados
-        ============================================================ -->
         <div class="card-pagina">
             <div class="card-titulo"><i class="fa-solid fa-magnifying-glass"></i> Filtros</div>
-            <form method="GET" action="cadastro_agendas.php">
+            <form method="GET" action="cadastro_medicos.php">
                 <div class="row g-3">
-                    <div class="col-md-3">
-                        <label for="filtroPaciente">Paciente</label>
-                        <input type="text" class="form-control form-control-sm" id="filtroPaciente"
-                               name="paciente" placeholder="Nome do paciente"
-                               value="<?php echo htmlspecialchars($filtroPaciente) ?>">
+                    <div class="col-md-4">
+                        <label for="filtroNome">Nome do Médico</label>
+                        <input type="text" class="form-control form-control-sm" id="filtroNome"
+                               name="nome" placeholder="Digite o nome do médico"
+                               value="<?php echo htmlspecialchars($filtroNome ?? '') ?>">
                     </div>
-                    <div class="col-md-3">
-                        <label for="filtroMedico">Médico</label>
-                        <select class="form-select form-select-sm" id="filtroMedico" name="medico">
-                            <option value="">Todos</option>
-                            <?php foreach ($medicos as $m): ?>
-                                <option value="<?php echo htmlspecialchars($m['nome']) ?>"
-                                    <?php echo ($filtroMedico === $m['nome']) ? 'selected' : '' ?>>
-                                    <?php echo htmlspecialchars($m['nome']) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
+                    <div class="col-md-4">
+                        <label for="filtroEspecialidade">Especialidade</label>
+                        <input type="text" class="form-control form-control-sm" id="filtroEspecialidade"
+                               name="especialidade" placeholder="Ex: Cardiologia"
+                               value="<?php echo htmlspecialchars($filtroEspecialidade ?? '') ?>">
                     </div>
-                    <div class="col-md-2">
+                     <div class="col-md-4">
                         <label for="filtroStatus">Status</label>
                         <select class="form-select form-select-sm" id="filtroStatus" name="status">
                             <option value="">Todos</option>
-                            <option value="Confirmado" <?php echo ($filtroStatus === 'Confirmado') ? 'selected' : '' ?>>Confirmado</option>
-                            <option value="Pendente"   <?php echo ($filtroStatus === 'Pendente')   ? 'selected' : '' ?>>Pendente</option>
-                            <option value="Cancelado"  <?php echo ($filtroStatus === 'Cancelado')  ? 'selected' : '' ?>>Cancelado</option>
+                            <option value="Ativo" <?php echo (isset($filtroStatus) && $filtroStatus === 'Ativo') ? 'selected' : '' ?>>Ativo</option>
+                            <option value="Inativo" <?php echo (isset($filtroStatus) && $filtroStatus === 'Inativo') ? 'selected' : '' ?>>Inativo</option>
                         </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label for="filtroDataIni">Data inicial</label>
-                        <input type="date" class="form-control form-control-sm" id="filtroDataIni"
-                               name="data_ini" value="<?php echo htmlspecialchars($filtroDataIni) ?>">
-                    </div>
-                    <div class="col-md-2">
-                        <label for="filtroDataFim">Data final</label>
-                        <input type="date" class="form-control form-control-sm" id="filtroDataFim"
-                               name="data_fim" value="<?php echo htmlspecialchars($filtroDataFim) ?>">
                     </div>
                 </div>
                 <div class="d-flex gap-2 mt-3">
                     <button type="submit" class="btn btn-primary btn-sm">
                         <i class="fa-solid fa-magnifying-glass me-1"></i> Filtrar
                     </button>
-                    <a href="cadastro_agendas.php" class="btn btn-outline-secondary btn-sm">
+                    <a href="cadastro_medicos.php" class="btn btn-outline-secondary btn-sm">
                         <i class="fa-solid fa-xmark me-1"></i> Limpar
                     </a>
                 </div>
             </form>
         </div>
 
-        <!-- ============================================================
-             TABELA DE AGENDAMENTOS
-             TODO: os dados virão do banco — $agendamentos será o resultado
-             da query filtrada. A paginação também será implementada aqui.
-        ============================================================ -->
         <div class="card-pagina">
             <div class="card-titulo d-flex justify-content-between align-items-center">
-                <span><i class="fa-solid fa-table-list"></i> Agendamentos</span>
-                <!-- TODO: exibir total real vindo do banco -->
+                <span><i class="fa-solid fa-table-list"></i> Médicos Cadastrados</span>
                 <span id="contadorRegistros" class="text-muted" style="font-size:0.82rem; font-weight:400;">
-                    <?php echo count($agendamentos) ?> registro(s) encontrado(s)
+                    <?php echo count($medicos ?? []) ?> registro(s) encontrado(s)
                 </span>
             </div>
 
             <div class="table-responsive">
-                <table class="tabela-agendamentos">
-                    <thead>
+                <table class="tabela-agendamentos"> <thead>
                         <tr>
                             <th>#</th>
-                            <th>Data</th>
-                            <th>Horário</th>
-                            <th>Paciente</th>
-                            <th>Médico</th>
+                            <th>Nome</th>
+                            <th>CRM</th>
                             <th>Especialidade</th>
+                            <th>Telefone</th>
+                            <th>E-mail</th>
                             <th>Status</th>
                             <th class="text-center">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php if (empty($agendamentos)): ?>
+                        <?php if (empty($medicos)): ?>
                             <tr>
                                 <td colspan="8" class="text-center text-muted py-4">
-                                    <i class="fa-solid fa-calendar-xmark me-2"></i>Nenhum agendamento encontrado.
+                                    <i class="fa-solid fa-user-xmark me-2"></i>Nenhum médico encontrado.
                                 </td>
                             </tr>
                         <?php else: ?>
-                            <?php foreach ($agendamentos as $ag):
-                                // Formata data de YYYY-MM-DD para DD/MM/YYYY
-                                $dataFormatada = date('d/m/Y', strtotime($ag['data']));
-
+                            <?php foreach ($medicos as $med): 
                                 // Define classe do badge conforme status
-                                if ($ag['status'] === 'Confirmado') {
-                                    $classeBadge = 'badge-confirmado';
-                                } elseif ($ag['status'] === 'Pendente') {
-                                    $classeBadge = 'badge-pendente';
+                                if (isset($med['status']) && $med['status'] === 'Ativo') {
+                                    $classeBadge = 'badge-confirmado'; 
                                 } else {
-                                    $classeBadge = 'badge-cancelado';
+                                    $classeBadge = 'badge-cancelado'; 
                                 }
                             ?>
                             <tr>
-                                <td class="text-muted"><?php echo $ag['id'] ?></td>
-                                <td><?php echo $dataFormatada ?></td>
-                                <td><?php echo htmlspecialchars($ag['horario']) ?></td>
-                                <td><?php echo htmlspecialchars($ag['paciente']) ?></td>
-                                <td><?php echo htmlspecialchars($ag['medico']) ?></td>
-                                <td><?php echo htmlspecialchars($ag['especialidade']) ?></td>
-                                <td><span class="badge-status <?php echo $classeBadge ?>"><?php echo htmlspecialchars($ag['status']) ?></span></td>
+                                <td class="text-muted"><?php echo $med['id'] ?></td>
+                                <td class="fw-medium"><?php echo htmlspecialchars($med['nome']) ?></td>
+                                <td><?php echo htmlspecialchars($med['crm'] ?? 'N/A') ?></td>
+                                <td><?php echo htmlspecialchars($med['especialidade']) ?></td>
+                                <td><?php echo htmlspecialchars($med['telefone'] ?? 'N/A') ?></td>
+                                <td><?php echo htmlspecialchars($med['email'] ?? 'N/A') ?></td>
+                                <td><span class="badge-status <?php echo $classeBadge ?>"><?php echo htmlspecialchars($med['status'] ?? 'Ativo') ?></span></td>
                                 <td class="text-center" style="white-space:nowrap;">
-                                    <!-- TODO: passar dados reais para o modal de edição -->
-                                    <button class="btn btn-sm btn-outline-primary py-0 px-2 btn-editar"
-                                            title="Editar"
-                                            data-id="<?php echo $ag['id'] ?>"
-                                            data-paciente="<?php echo htmlspecialchars($ag['paciente']) ?>"
-                                            data-medico="<?php echo htmlspecialchars($ag['medico']) ?>"
-                                            data-especialidade="<?php echo htmlspecialchars($ag['especialidade']) ?>"
-                                            data-data="<?php echo $ag['data'] ?>"
-                                            data-horario="<?php echo htmlspecialchars($ag['horario']) ?>"
-                                            data-status="<?php echo htmlspecialchars($ag['status']) ?>">
+                                    <button class="btn btn-sm btn-outline-primary py-0 px-2 btn-editar-medico"
+                                            title="Editar Médico"
+                                            data-id="<?php echo $med['id'] ?>"
+                                            data-nome="<?php echo htmlspecialchars($med['nome']) ?>"
+                                            data-crm="<?php echo htmlspecialchars($med['crm'] ?? '') ?>"
+                                            data-especialidade="<?php echo htmlspecialchars($med['especialidade']) ?>"
+                                            data-telefone="<?php echo htmlspecialchars($med['telefone'] ?? '') ?>"
+                                            data-email="<?php echo htmlspecialchars($med['email'] ?? '') ?>"
+                                            data-status="<?php echo htmlspecialchars($med['status'] ?? 'Ativo') ?>">
                                         <i class="fa-solid fa-pen"></i>
                                     </button>
-                                    <!-- TODO: confirmar e enviar POST acao=cancelar&id=X -->
-                                    <button class="btn btn-sm btn-outline-danger py-0 px-2 btn-cancelar"
-                                            title="Cancelar agendamento"
-                                            data-id="<?php echo $ag['id'] ?>"
-                                            data-paciente="<?php echo htmlspecialchars($ag['paciente']) ?>">
-                                        <i class="fa-solid fa-ban"></i>
+                                    
+                                    <button class="btn btn-sm btn-outline-danger py-0 px-2 btn-excluir-medico"
+                                            title="Excluir Médico"
+                                            data-id="<?php echo $med['id'] ?>"
+                                            data-nome="<?php echo htmlspecialchars($med['nome']) ?>">
+                                        <i class="fa-solid fa-trash"></i>
                                     </button>
                                 </td>
                             </tr>
@@ -668,12 +504,6 @@ $medicos = [
                 </table>
             </div>
 
-            <!-- ============================================================
-                 PAGINAÇÃO
-                 TODO: implementar após integrar com o banco.
-                 Variáveis necessárias: $paginaAtual, $totalPaginas
-                 Exemplo: ?paciente=X&status=Y&pagina=2
-            ============================================================ -->
             <div class="d-flex justify-content-end mt-3">
                 <nav aria-label="Paginação">
                     <ul class="pagination pagination-sm mb-0">
@@ -687,94 +517,12 @@ $medicos = [
 
     </main>
 
-    <!-- ==================================================
-         MODAL — NOVO / EDITAR AGENDAMENTO
-         TODO: ao confirmar, submeter o formulário via POST
-               com acao='novo' ou acao='editar'
-    ================================================== -->
-    <div class="modal fade modal-form" id="modalFormAgenda" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="modalFormTitulo">
-                        <i class="fa-solid fa-calendar-plus me-2"></i>Novo Agendamento
-                    </h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-                </div>
-
-                <!-- TODO: action="cadastro_agendas.php" method="POST" ao integrar com banco -->
-                <form id="formAgenda" action="cadastro_agendas.php" method="POST"> 
-                    <input type="hidden" name="acao" id="formAcao" value="novo">
-                    <input type="hidden" name="id"   id="formId"   value="">
-
-                    <div class="modal-body">
-                        <div class="row g-3">
-                            <div class="col-12">
-                                <label for="formPaciente">Paciente <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" id="formPaciente" 
-                                    name="paciente"
-                                    placeholder="Nome completo do paciente" required>
-                                <!-- TODO: substituir por autocomplete buscando pacientes no banco -->
-                            </div>
-                            <div class="col-md-6">
-                                <label for="formMedico">Médico <span class="text-danger">*</span></label>
-                                <select class="form-select" id="formMedico" 
-                                 name="medico_id" required>
-                                    <option value="">Selecione...</option>
-                                    <?php foreach ($medicos as $m): ?>
-                                        <option value="<?php echo $m['id'] ?>"><?php echo htmlspecialchars($m['nome']) ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="formEspecialidade">Especialidade <span class="text-danger">*</span></label>
-                                <input type="text" class="form-control" 
-                                id="formEspecialidade"
-                                       name="especialidade" placeholder="Ex: Cardiologia" required>
-                                <!-- TODO: preencher automaticamente ao selecionar o médico -->
-                            </div>
-                            <div class="col-md-6">
-                                <label for="formData">Data <span class="text-danger">*</span></label>
-                                <input type="date" class="form-control"  
-                                 id="formData" name="data" required>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="formHorario">Horário <span class="text-danger">*</span></label>
-                                <input type="time" class="form-control" id="formHorario" 
-                                name="horario" required>
-                            </div>
-                            <div class="col-12">
-                                <label for="formStatus">Status</label>
-                                <select class="form-select" id="formStatus" name="status">
-                                    <option value="Pendente">Pendente</option>
-                                    <option value="Confirmado">Confirmado</option>
-                                    <option value="Cancelado">Cancelado</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
-                        <!-- TODO: mudar para type="submit" ao integrar com banco -->
-                        <button type="submit" class="btn btn-primary" onclick="salvarAgendamento()">
-                            <i class="fa-solid fa-floppy-disk me-1"></i> Salvar
-                        </button>
-                    </div>
-                </form>t
-            </div>
-        </div>
-    </div>
-
-    <!-- ================ SCRIPTS ================ -->
+</body>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
             integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script>
-        // ==================================================
-        // TOGGLE DA SIDEBAR (responsivo)
-        // ==================================================
         var btnSanduiche      = document.getElementById('btnSanduiche');
         var sidebar           = document.getElementById('sidebar');
         var conteudoPrincipal = document.getElementById('conteudoPrincipal');
@@ -799,239 +547,5 @@ $medicos = [
                 sidebarOverlay.classList.remove('ativo');
             }
         });
-
-        // ==================================================
-        // INSTÂNCIA ÚNICA DO MODAL E FLAG DE MODO
-        // ==================================================
-        var modalFormAgendaEl = document.getElementById('modalFormAgenda');
-        var modalFormAgenda   = new bootstrap.Modal(modalFormAgendaEl);
-        var modoEdicao        = false;
-
-        // Reseta o formulário apenas quando aberto no modo "Novo"
-        modalFormAgendaEl.addEventListener('show.bs.modal', function() {
-            if (!modoEdicao) {
-                document.getElementById('modalFormTitulo').innerHTML =
-                    '<i class="fa-solid fa-calendar-plus me-2"></i>Novo Agendamento';
-                document.getElementById('formAcao').value = 'novo';
-                document.getElementById('formId').value   = '';
-                document.getElementById('formAgenda').reset();
-            }
-            modoEdicao = false;
-        });
-
-        // ==================================================
-        // EVENT DELEGATION — Editar e Cancelar (cobre linhas dinâmicas)
-        // ==================================================
-        document.querySelector('.tabela-agendamentos').addEventListener('click', function(e) {
-            var btnEditar   = e.target.closest('.btn-editar');
-            var btnCancelar = e.target.closest('.btn-cancelar');
-           
-            if (btnEditar) {
-                modoEdicao = true;
-                document.getElementById('modalFormTitulo').innerHTML =
-                    '<i class="fa-solid fa-pen me-2"></i>Editar Agendamento';
-                document.getElementById('formAcao').value          = 'editar';
-                document.getElementById('formId').value            = btnEditar.dataset.id;
-                document.getElementById('formPaciente').value      = btnEditar.dataset.paciente;
-                document.getElementById('formData').value          = btnEditar.dataset.data;
-                document.getElementById('formHorario').value       = btnEditar.dataset.horario;
-                document.getElementById('formEspecialidade').value = btnEditar.dataset.especialidade;
-                document.getElementById('formStatus').value        = btnEditar.dataset.status;
-
-                var sel = document.getElementById('formMedico');
-                for (var i = 0; i < sel.options.length; i++) {
-                    if (sel.options[i].text === btnEditar.dataset.medico) {
-                        sel.selectedIndex = i;
-                        break;
-                    }
-                }
-                modalFormAgenda.show();
-            }
-
-            if (btnCancelar) {
-                Swal.fire({
-                    title: 'Cancelar agendamento?',
-                    html: 'Deseja cancelar o agendamento de <strong>' + btnCancelar.dataset.paciente + '</strong>?',
-                    icon: 'warning',
-                    showCancelButton: true,
-                    confirmButtonColor: '#dc3545',
-                    cancelButtonColor:  '#6c757d',
-                    confirmButtonText:  'Sim, cancelar',
-                    cancelButtonText:   'Voltar'
-                }).then(function(result) {
-                    
-                    var var_acao = "cancelar";
-                    var id_agenda = btnCancelar.dataset.id;
-
-                    if (result.isConfirmed) {
-                        // TODO: substituir pelo envio real ao banco
-                        bodyContent = $.ajax({
-                            url: "cadastro_agendas.php",
-                            global: false,
-                            type: "POST",
-                            data: ({id: id_agenda, acao: var_acao}),
-                            dataType: "html",
-                            async:false,
-                            success: function(msg){
-                                return msg;
-                            }
-                        }).responseText;
-                        //btnCancelar.closest('tr').remove();
-                        //atualizarContadorAgenda();
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Cancelado!',
-                            text: 'O agendamento foi cancelado.',
-                            confirmButtonColor: '#0d6efd',
-                            timer: 2000,
-                            showConfirmButton: false
-                        });
-                        window.location.href = "cadastro_agendas.php";
-                    }
-                });
-            }
-        });
-
-        // ==================================================
-        // FUNÇÃO PRINCIPAL: salvar agendamento
-        // TODO: substituir o corpo por fetch/AJAX ao integrar com o banco
-        // ==================================================
-        function salvarAgendamento() {
-            var form = document.getElementById('formAgenda');
-            if (!form.checkValidity()) {
-                form.reportValidity();
-                return;
-            }
-            /*                            
-            var acao          = document.getElementById('formAcao').value;
-            var id            = document.getElementById('formId').value;
-            var paciente      = document.getElementById('formPaciente').value.trim();
-            var medicoSel     = document.getElementById('formMedico');
-            var medico        = medicoSel.options[medicoSel.selectedIndex].text;
-            var especialidade = document.getElementById('formEspecialidade').value.trim();
-            var dataISO       = document.getElementById('formData').value;
-            var horario       = document.getElementById('formHorario').value;
-            var status        = document.getElementById('formStatus').value;
-            var partes        = dataISO.split('-');
-            var dataFmt       = partes[2] + '/' + partes[1] + '/' + partes[0];
-
-            if (acao === 'editar') {
-                var btnEditar = document.querySelector('.btn-editar[data-id="' + id + '"]');
-                if (btnEditar) {
-                    var tr = btnEditar.closest('tr');
-                    tr.cells[1].textContent = dataFmt;
-                    tr.cells[2].textContent = horario;
-                    tr.cells[3].textContent = paciente;
-                    tr.cells[4].textContent = medico;
-                    tr.cells[5].textContent = especialidade;
-                    tr.cells[6].innerHTML   = '<span class="badge-status ' + getBadgeClassAgenda(status) + '">' + status + '</span>';
-
-                    btnEditar.dataset.paciente      = paciente;
-                    btnEditar.dataset.medico        = medico;
-                    btnEditar.dataset.especialidade = especialidade;
-                    btnEditar.dataset.data          = dataISO;
-                    btnEditar.dataset.horario       = horario;
-                    btnEditar.dataset.status        = status;
-
-                    var btnCancelar = tr.querySelector('.btn-cancelar');
-                    if (btnCancelar) btnCancelar.dataset.paciente = paciente;
-                }
-            } else {
-                var tbody    = document.querySelector('.tabela-agendamentos tbody');
-                var semDados = tbody.querySelector('td[colspan]');
-                if (semDados) semDados.closest('tr').remove();
-
-                var novoId = 'tmp-' + Date.now();
-                tbody.appendChild(criarLinhaAgendamento(novoId, dataFmt, horario, paciente, medico, especialidade, status, dataISO));
-                atualizarContadorAgenda();
-            }
-            */
-            modalFormAgenda.hide();
-            Swal.fire({
-                icon: 'success',
-                title: 'Salvo!',
-                text: acao === 'editar' ? 'Agendamento atualizado com sucesso.' : 'Agendamento cadastrado com sucesso.',
-                confirmButtonColor: '#0d6efd',
-                timer: 2000,
-                showConfirmButton: false
-            });
-        }
-
-        // Cria um <tr> completo para a tabela de agendamentos
-        function criarLinhaAgendamento(id, dataFmt, horario, paciente, medico, especialidade, status, dataISO) {
-            var tr = document.createElement('tr');
-
-            var tdId = document.createElement('td'); tdId.className = 'text-muted'; tdId.textContent = '—';
-            var tdDt = document.createElement('td'); tdDt.textContent = dataFmt;
-            var tdHr = document.createElement('td'); tdHr.textContent = horario;
-            var tdPa = document.createElement('td'); tdPa.textContent = paciente;
-            var tdMe = document.createElement('td'); tdMe.textContent = medico;
-            var tdEs = document.createElement('td'); tdEs.textContent = especialidade;
-
-            var tdSt  = document.createElement('td');
-            var badge = document.createElement('span');
-            badge.className   = 'badge-status ' + getBadgeClassAgenda(status);
-            badge.textContent = status;
-            tdSt.appendChild(badge);
-
-            var tdAc = document.createElement('td');
-            tdAc.className        = 'text-center';
-            tdAc.style.whiteSpace = 'nowrap';
-
-            var btnEdit = document.createElement('button');
-            btnEdit.className              = 'btn btn-sm btn-outline-primary py-0 px-2 btn-editar';
-            btnEdit.title                  = 'Editar';
-            btnEdit.innerHTML              = '<i class="fa-solid fa-pen"></i>';
-            btnEdit.dataset.id             = id;
-            btnEdit.dataset.paciente       = paciente;
-            btnEdit.dataset.medico         = medico;
-            btnEdit.dataset.especialidade  = especialidade;
-            btnEdit.dataset.data           = dataISO;
-            btnEdit.dataset.horario        = horario;
-            btnEdit.dataset.status         = status;
-
-            var btnCan = document.createElement('button');
-            btnCan.className        = 'btn btn-sm btn-outline-danger py-0 px-2 btn-cancelar';
-            btnCan.title            = 'Cancelar agendamento';
-            btnCan.innerHTML        = '<i class="fa-solid fa-ban"></i>';
-            btnCan.dataset.id       = id;
-            btnCan.dataset.paciente = paciente;
-
-            tdAc.appendChild(btnEdit);
-            tdAc.appendChild(btnCan);
-            tr.appendChild(tdId); tr.appendChild(tdDt); tr.appendChild(tdHr);
-            tr.appendChild(tdPa); tr.appendChild(tdMe); tr.appendChild(tdEs);
-            tr.appendChild(tdSt); tr.appendChild(tdAc);
-            return tr;
-        }
-
-        // Retorna a classe CSS do badge de status
-        function getBadgeClassAgenda(status) {
-            if (status === 'Confirmado') return 'badge-confirmado';
-            if (status === 'Pendente')   return 'badge-pendente';
-            return 'badge-cancelado';
-        }
-
-        // Atualiza o texto do contador de registros
-        function atualizarContadorAgenda() {
-            var tbody  = document.querySelector('.tabela-agendamentos tbody');
-            var linhas = tbody.rows;
-            var total  = 0;
-            for (var i = 0; i < linhas.length; i++) {
-                if (!linhas[i].querySelector('td[colspan]')) total++;
-            }
-            if (tbody.rows.length === 0) {
-                var tr = document.createElement('tr');
-                var td = document.createElement('td');
-                td.setAttribute('colspan', '8');
-                td.className = 'text-center text-muted py-4';
-                td.innerHTML = '<i class="fa-solid fa-calendar-xmark me-2"></i>Nenhum agendamento encontrado.';
-                tr.appendChild(td);
-                tbody.appendChild(tr);
-            }
-            var el = document.getElementById('contadorRegistros');
-            if (el) el.textContent = total + ' registro(s) encontrado(s)';
-        }
+        
     </script>
-</body>
-</html>

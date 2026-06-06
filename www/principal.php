@@ -1,22 +1,17 @@
 <?php
 session_start();
-require_once("conexao.php");// importar o conexao.php para esta página
+require_once("conexao.php"); // importar o conexao.php para esta página
 
-if(!isset($_SESSION['cod_usuario'])){
+if (!isset($_SESSION['cod_usuario'])) {
     header("Location: login.php");
     exit;
 }
+
+//pegando todos os dadods que sempre serão necessrios e armazenando os nas variaveis de sessão, respeita o roxo
 $cod_usuario = $_SESSION['cod_usuario'];
-$nomeUsuario = "";
-$emailUsuario = "";
-$sql = "SELECT * FROM usuario WHERE cod_usuario = '$cod_usuario'";
+$nomeUsuario = $_SESSION['nome'];
+$emailUsuario = $_SESSION['email'];
 
-$result = mysqli_query($conexao_bd,$sql); //pega o resultado da query e lança num array
-
-if($consulta = mysqli_fetch_assoc($result)){ //leitura do array
-    $nomeUsuario  = $consulta['nome'];
-    $emailUsuario = $consulta['email'];
-}
 /* ============================================================
    principal.php - Dashboard de Agendamento de Consultas Médicas
    ------------------------------------------------------------
@@ -41,8 +36,21 @@ $operadorEmail = $emailUsuario; //"joao.silva@clinica.com";
 ============================================================ */
 $mesAtual    = isset($_GET['mes']) ? max(1, min(12, (int)$_GET['mes'])) : (int)date('n');
 $anoAtual    = isset($_GET['ano']) ? (int)$_GET['ano'] : (int)date('Y');
-$nomesMeses  = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-                'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+$nomesMeses  = [
+    '',
+    'Janeiro',
+    'Fevereiro',
+    'Março',
+    'Abril',
+    'Maio',
+    'Junho',
+    'Julho',
+    'Agosto',
+    'Setembro',
+    'Outubro',
+    'Novembro',
+    'Dezembro'
+];
 $nomeMes     = $nomesMeses[$mesAtual];
 $primeiroDia = mktime(0, 0, 0, $mesAtual, 1, $anoAtual);
 $diaSemanaInicio = (int)date('w', $primeiroDia); // 0=Dom ... 6=Sáb
@@ -54,21 +62,23 @@ $anoHoje     = (int)date('Y');
 // Mês anterior
 $mesAnterior = $mesAtual - 1;
 $anoAnterior = $anoAtual;
-if ($mesAnterior < 1) { $mesAnterior = 12; $anoAnterior--; }
+if ($mesAnterior < 1) {
+    $mesAnterior = 12;
+    $anoAnterior--;
+}
 
 // Próximo mês
 $proximoMes = $mesAtual + 1;
 $proximoAno = $anoAtual;
-if ($proximoMes > 12) { $proximoMes = 1; $proximoAno++; }
+if ($proximoMes > 12) {
+    $proximoMes = 1;
+    $proximoAno++;
+}
 
-/* ============================================================
-   AGENDAMENTOS FICTÍCIOS (placeholder para visualização)
-   REMOVER QUANDO INTEGRAR COM O BANCO DE DADOS
-   Estrutura esperada: chave = dia do mês, valor = array de agendamentos
-============================================================ */
+
 $sql = "select *, DAY(data) diaAgenda from vw_agendamentos where MONTH(data) = $mesAtual AND YEAR(data) = $anoAtual";
-$result = mysqli_query($conexao_bd,$sql);
-while($row = $result->fetch_assoc()){
+$result = mysqli_query($conexao_bd, $sql);
+while ($row = $result->fetch_assoc()) {
     //echo ">>>" . $row["paciente"]." | ". $row["data"] . " | " . $row["diaAgenda"] . "<br>";
     $agendamentosFicticios[$row["diaAgenda"]][] = [
         'id'            => $row["id"],
@@ -79,37 +89,11 @@ while($row = $result->fetch_assoc()){
         'status'        => $row["status"]
     ];
 }
-/*
-$agendamentosFicticios = [
-    5  => [
-        ['id' => 1, 'horario' => '09:00', 'paciente' => 'Maria Souza',     'medico' => 'Dr. Carlos Lima',  'especialidade' => 'Cardiologia',  'status' => 'Confirmado'],
-    ],
-    8  => [
-        ['id' => 2, 'horario' => '10:30', 'paciente' => 'Carlos Andrade',  'medico' => 'Dra. Ana Paula',   'especialidade' => 'Dermatologia', 'status' => 'Confirmado'],
-        ['id' => 3, 'horario' => '14:00', 'paciente' => 'Juliana Reis',    'medico' => 'Dr. Pedro Alves',  'especialidade' => 'Ortopedia',    'status' => 'Pendente'],
-    ],
-    12 => [
-        ['id' => 4, 'horario' => '08:00', 'paciente' => 'Pedro Henrique',  'medico' => 'Dra. Ana Paula',   'especialidade' => 'Dermatologia', 'status' => 'Confirmado'],
-    ],
-    15 => [
-        ['id' => 5, 'horario' => '11:00', 'paciente' => 'Júlia Mendes',    'medico' => 'Dr. Carlos Lima',  'especialidade' => 'Cardiologia',  'status' => 'Confirmado'],
-        ['id' => 6, 'horario' => '15:30', 'paciente' => 'Roberto Dias',    'medico' => 'Dr. Pedro Alves',  'especialidade' => 'Ortopedia',    'status' => 'Confirmado'],
-        ['id' => 7, 'horario' => '16:30', 'paciente' => 'Fernanda Costa',  'medico' => 'Dra. Marina Reis', 'especialidade' => 'Pediatria',    'status' => 'Pendente'],
-        ['id' => 8, 'horario' => '17:30', 'paciente' => 'Lucas Silva',     'medico' => 'Dr. Carlos Lima',  'especialidade' => 'Cardiologia',  'status' => 'Confirmado'],
-    ],
-    20 => [
-        ['id' => 9, 'horario' => '09:30', 'paciente' => 'Luiz Henrique',   'medico' => 'Dra. Marina Reis', 'especialidade' => 'Pediatria',    'status' => 'Confirmado'],
-    ],
-    23 => [
-        ['id' => 10,'horario' => '10:00', 'paciente' => 'Beatriz Ramos',   'medico' => 'Dra. Ana Paula',   'especialidade' => 'Dermatologia', 'status' => 'Pendente'],
-    ],
-    27 => [
-        ['id' => 11,'horario' => '14:00', 'paciente' => 'Marcos Vinícius', 'medico' => 'Dr. Pedro Alves',  'especialidade' => 'Ortopedia',    'status' => 'Confirmado'],
-    ],
-];*/
+
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -121,7 +105,7 @@ $agendamentosFicticios = [
     <!-- ================ CDNs ================ -->
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
-          integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+        integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
     <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
@@ -129,12 +113,12 @@ $agendamentosFicticios = [
     <style>
         :root {
             --azul-primario: #0d6efd;
-            --azul-escuro:   #084298;
-            --azul-claro:    #e7f1ff;
-            --cinza-fundo:   #f5f7fa;
-            --cinza-borda:   #e3e6ea;
-            --texto-escuro:  #1f2d3d;
-            --sidebar-larg:  250px;
+            --azul-escuro: #084298;
+            --azul-claro: #e7f1ff;
+            --cinza-fundo: #f5f7fa;
+            --cinza-borda: #e3e6ea;
+            --texto-escuro: #1f2d3d;
+            --sidebar-larg: 250px;
         }
 
         body {
@@ -148,19 +132,24 @@ $agendamentosFicticios = [
         .navbar-topo {
             background: linear-gradient(90deg, var(--azul-primario) 0%, var(--azul-escuro) 100%);
             height: 60px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
             position: fixed;
-            top: 0; left: 0; right: 0;
+            top: 0;
+            left: 0;
+            right: 0;
             z-index: 1030;
         }
+
         .navbar-topo .navbar-brand {
             color: #fff;
             font-weight: 600;
             font-size: 1.25rem;
         }
+
         .navbar-topo .navbar-brand i {
             margin-right: 8px;
         }
+
         .btn-sanduiche {
             background: transparent;
             border: none;
@@ -170,9 +159,11 @@ $agendamentosFicticios = [
             border-radius: 6px;
             transition: background 0.2s;
         }
+
         .btn-sanduiche:hover {
-            background: rgba(255,255,255,0.15);
+            background: rgba(255, 255, 255, 0.15);
         }
+
         .operador-toggle {
             background: transparent;
             border: none;
@@ -184,19 +175,24 @@ $agendamentosFicticios = [
             border-radius: 30px;
             transition: background 0.2s;
         }
-        .operador-toggle:hover, .operador-toggle:focus {
-            background: rgba(255,255,255,0.15);
+
+        .operador-toggle:hover,
+        .operador-toggle:focus {
+            background: rgba(255, 255, 255, 0.15);
             color: #fff;
         }
+
         .operador-toggle i.fa-circle-user {
             font-size: 1.6rem;
         }
+
         .dropdown-menu-operador {
             min-width: 220px;
             border-radius: 10px;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
             border: none;
         }
+
         .dropdown-menu-operador .dropdown-item i {
             width: 22px;
             color: var(--azul-primario);
@@ -216,9 +212,11 @@ $agendamentosFicticios = [
             z-index: 1020;
             overflow-y: auto;
         }
+
         .sidebar.oculta {
             transform: translateX(calc(var(--sidebar-larg) * -1));
         }
+
         .sidebar .nav-link {
             color: var(--texto-escuro);
             padding: 12px 20px;
@@ -228,16 +226,19 @@ $agendamentosFicticios = [
             align-items: center;
             gap: 12px;
         }
+
         .sidebar .nav-link i {
             width: 22px;
             color: var(--azul-primario);
             font-size: 1.05rem;
         }
+
         .sidebar .nav-link:hover {
             background: var(--azul-claro);
             border-left-color: var(--azul-primario);
             color: var(--azul-escuro);
         }
+
         .sidebar .nav-link.ativo {
             background: var(--azul-claro);
             border-left-color: var(--azul-primario);
@@ -249,10 +250,14 @@ $agendamentosFicticios = [
         .sidebar-overlay {
             display: none;
             position: fixed;
-            top: 60px; left: 0; right: 0; bottom: 0;
-            background: rgba(0,0,0,0.4);
+            top: 60px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
             z-index: 1010;
         }
+
         .sidebar-overlay.ativo {
             display: block;
         }
@@ -265,6 +270,7 @@ $agendamentosFicticios = [
             transition: margin-left 0.3s ease;
             min-height: calc(100vh - 60px);
         }
+
         .conteudo-principal.expandido {
             margin-left: 0;
         }
@@ -274,10 +280,12 @@ $agendamentosFicticios = [
             .sidebar {
                 transform: translateX(calc(var(--sidebar-larg) * -1));
             }
+
             .sidebar.aberta {
                 transform: translateX(0);
-                box-shadow: 2px 0 12px rgba(0,0,0,0.15);
+                box-shadow: 2px 0 12px rgba(0, 0, 0, 0.15);
             }
+
             .conteudo-principal {
                 margin-left: 0;
             }
@@ -287,10 +295,11 @@ $agendamentosFicticios = [
         .card-calendario {
             background: #fff;
             border-radius: 12px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
             border: 1px solid var(--cinza-borda);
             overflow: hidden;
         }
+
         .calendario-cabecalho {
             display: flex;
             justify-content: space-between;
@@ -300,12 +309,14 @@ $agendamentosFicticios = [
             flex-wrap: wrap;
             gap: 10px;
         }
+
         .calendario-cabecalho h4 {
             margin: 0;
             color: var(--azul-escuro);
             font-weight: 600;
             text-transform: capitalize;
         }
+
         .calendario-cabecalho .btn-nav {
             border: 1px solid var(--cinza-borda);
             background: #fff;
@@ -314,6 +325,7 @@ $agendamentosFicticios = [
             border-radius: 6px;
             transition: all 0.2s;
         }
+
         .calendario-cabecalho .btn-nav:hover {
             background: var(--azul-claro);
             color: var(--azul-primario);
@@ -326,6 +338,7 @@ $agendamentosFicticios = [
             background: var(--cinza-borda);
             gap: 1px;
         }
+
         .calendario-grade .dia-semana {
             background: #fafbfc;
             text-align: center;
@@ -336,6 +349,7 @@ $agendamentosFicticios = [
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
+
         .calendario-grade .dia {
             background: #fff;
             min-height: 120px;
@@ -345,18 +359,22 @@ $agendamentosFicticios = [
             display: flex;
             flex-direction: column;
         }
+
         .calendario-grade .dia:hover {
             background: #fafbfc;
         }
+
         .calendario-grade .dia.vazio {
             background: #f8f9fa;
         }
+
         .calendario-grade .dia .numero {
             font-weight: 600;
             font-size: 0.95rem;
             color: var(--texto-escuro);
             margin-bottom: 4px;
         }
+
         .calendario-grade .dia.hoje .numero {
             background: var(--azul-primario);
             color: #fff;
@@ -382,19 +400,23 @@ $agendamentosFicticios = [
             white-space: nowrap;
             text-overflow: ellipsis;
         }
+
         .card-agendamento:hover {
             background: var(--azul-primario);
             color: #fff;
             transform: translateX(2px);
         }
+
         .card-agendamento .horario {
             font-weight: 600;
         }
+
         .card-agendamento .paciente {
             display: block;
             overflow: hidden;
             text-overflow: ellipsis;
         }
+
         .link-mais {
             font-size: 0.72rem;
             color: var(--azul-primario);
@@ -402,6 +424,7 @@ $agendamentosFicticios = [
             font-weight: 600;
             margin-top: 2px;
         }
+
         .link-mais:hover {
             text-decoration: underline;
         }
@@ -411,9 +434,11 @@ $agendamentosFicticios = [
             background: var(--azul-primario);
             color: #fff;
         }
+
         .modal-detalhe .modal-header .btn-close {
             filter: invert(1);
         }
+
         .modal-detalhe .info-item {
             padding: 10px 0;
             border-bottom: 1px solid var(--cinza-borda);
@@ -421,14 +446,17 @@ $agendamentosFicticios = [
             align-items: center;
             gap: 12px;
         }
+
         .modal-detalhe .info-item:last-child {
             border-bottom: none;
         }
+
         .modal-detalhe .info-item i {
             color: var(--azul-primario);
             width: 22px;
             font-size: 1.05rem;
         }
+
         .modal-detalhe .info-item strong {
             color: #6c757d;
             font-weight: 500;
@@ -436,6 +464,7 @@ $agendamentosFicticios = [
         }
     </style>
 </head>
+
 <body>
 
     <!-- ==================================================
@@ -457,13 +486,15 @@ $agendamentosFicticios = [
         <div class="dropdown">
             <button class="operador-toggle" type="button" id="dropdownOperador" data-bs-toggle="dropdown" aria-expanded="false">
                 <i class="fa-solid fa-circle-user"></i>
-                <span class="d-none d-md-inline"><?php echo($operadorNome); ?></span>
+                <span class="d-none d-md-inline"><?php echo ($operadorNome); ?></span>
                 <i class="fa-solid fa-chevron-down" style="font-size: 0.75rem;"></i>
             </button>
             <ul class="dropdown-menu dropdown-menu-end dropdown-menu-operador" aria-labelledby="dropdownOperador">
                 <li><a class="dropdown-item" href="#"><i class="fa-solid fa-user"></i><?php echo htmlspecialchars($operadorNome) ?></a></li>
                 <li><a class="dropdown-item" href="#"><i class="fa-solid fa-envelope"></i><?php echo htmlspecialchars($operadorEmail) ?></a></li>
-                <li><hr class="dropdown-divider"></li>
+                <li>
+                    <hr class="dropdown-divider">
+                </li>
                 <li><a class="dropdown-item" href="#"><i class="fa-solid fa-gear"></i>Configurações</a></li>
                 <li><a class="dropdown-item" href="logout.php"><i class="fa-solid fa-right-from-bracket"></i>Sair</a></li>
             </ul>
@@ -530,7 +561,7 @@ $agendamentosFicticios = [
                 // Loop pelos dias do mês
                 for ($dia = 1; $dia <= $totalDias; $dia++) {
                     $classeHoje = ($dia === $diaHoje && $mesAtual === $mesHoje && $anoAtual === $anoHoje) ? 'hoje' : '';
-                    ?>
+                ?>
                     <div class="dia <?php echo $classeHoje ?>">
                         <span class="numero"><?php echo $dia ?></span>
 
@@ -567,13 +598,13 @@ $agendamentosFicticios = [
                         ?>
                             <!-- ====== Template do card de agendamento (clicável → modal) ====== -->
                             <div class="card-agendamento"
-                                 data-id="<?php echo $agend['id'] ?>"
-                                 data-horario="<?php echo htmlspecialchars($agend['horario']) ?>"
-                                 data-paciente="<?php echo htmlspecialchars($agend['paciente']) ?>"
-                                 data-medico="<?php echo htmlspecialchars($agend['medico']) ?>"
-                                 data-especialidade="<?php echo htmlspecialchars($agend['especialidade']) ?>"
-                                 data-status="<?php echo htmlspecialchars($agend['status']) ?>"
-                                 data-data="<?php echo sprintf('%02d/%02d/%d', $dia, $mesAtual, $anoAtual) ?>">
+                                data-id="<?php echo $agend['id'] ?>"
+                                data-horario="<?php echo htmlspecialchars($agend['horario']) ?>"
+                                data-paciente="<?php echo htmlspecialchars($agend['paciente']) ?>"
+                                data-medico="<?php echo htmlspecialchars($agend['medico']) ?>"
+                                data-especialidade="<?php echo htmlspecialchars($agend['especialidade']) ?>"
+                                data-status="<?php echo htmlspecialchars($agend['status']) ?>"
+                                data-data="<?php echo sprintf('%02d/%02d/%d', $dia, $mesAtual, $anoAtual) ?>">
                                 <span class="horario"><?php echo htmlspecialchars($agend['horario']) ?></span>
                                 <span class="paciente"><?php echo htmlspecialchars($agend['paciente']) ?></span>
                             </div>
@@ -583,7 +614,7 @@ $agendamentosFicticios = [
                             <span class="link-mais">+ <?php echo $totalAgend - $maxExibir ?> mais</span>
                         <?php endif; ?>
                     </div>
-                    <?php
+                <?php
                 }
                 ?>
             </div>
@@ -642,7 +673,7 @@ $agendamentosFicticios = [
     <!-- ================ SCRIPTS ================ -->
     <!-- Bootstrap 5 JS Bundle -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
-            integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+        integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
@@ -650,10 +681,10 @@ $agendamentosFicticios = [
         // ==================================================
         // TOGGLE DA SIDEBAR (responsivo)
         // ==================================================
-        const btnSanduiche      = document.getElementById('btnSanduiche');
-        const sidebar           = document.getElementById('sidebar');
+        const btnSanduiche = document.getElementById('btnSanduiche');
+        const sidebar = document.getElementById('sidebar');
         const conteudoPrincipal = document.getElementById('conteudoPrincipal');
-        const sidebarOverlay    = document.getElementById('sidebarOverlay');
+        const sidebarOverlay = document.getElementById('sidebarOverlay');
 
         btnSanduiche.addEventListener('click', () => {
             if (window.innerWidth <= 991.98) {
@@ -684,23 +715,28 @@ $agendamentosFicticios = [
         // ==================================================
         // CLIQUE NO CARD DE AGENDAMENTO → ABRE MODAL
         // ==================================================
-        var modalAgendamento  = new bootstrap.Modal(document.getElementById('modalAgendamento'));
-        var agendamentoAtual  = { id: null, paciente: null, data: null, horario: null };
+        var modalAgendamento = new bootstrap.Modal(document.getElementById('modalAgendamento'));
+        var agendamentoAtual = {
+            id: null,
+            paciente: null,
+            data: null,
+            horario: null
+        };
 
         document.querySelectorAll('.card-agendamento').forEach(function(card) {
             card.addEventListener('click', function() {
                 // Guarda os dados do agendamento selecionado para uso no cancelamento
-                agendamentoAtual.id       = card.dataset.id;
+                agendamentoAtual.id = card.dataset.id;
                 agendamentoAtual.paciente = card.dataset.paciente;
-                agendamentoAtual.data     = card.dataset.data;
-                agendamentoAtual.horario  = card.dataset.horario;
+                agendamentoAtual.data = card.dataset.data;
+                agendamentoAtual.horario = card.dataset.horario;
 
-                document.getElementById('modalPaciente').textContent      = card.dataset.paciente;
-                document.getElementById('modalMedico').textContent        = card.dataset.medico;
+                document.getElementById('modalPaciente').textContent = card.dataset.paciente;
+                document.getElementById('modalMedico').textContent = card.dataset.medico;
                 document.getElementById('modalEspecialidade').textContent = card.dataset.especialidade;
-                document.getElementById('modalData').textContent          = card.dataset.data;
-                document.getElementById('modalHorario').textContent       = card.dataset.horario;
-                document.getElementById('modalStatus').textContent        = card.dataset.status;
+                document.getElementById('modalData').textContent = card.dataset.data;
+                document.getElementById('modalHorario').textContent = card.dataset.horario;
+                document.getElementById('modalStatus').textContent = card.dataset.status;
                 modalAgendamento.show();
             });
         });
@@ -711,61 +747,65 @@ $agendamentosFicticios = [
         document.getElementById('btnCancelarAgendamento').addEventListener('click', function() {
             Swal.fire({
                 title: 'Cancelar agendamento?',
-                html:  'Deseja cancelar o agendamento de <strong>' + agendamentoAtual.paciente + '</strong>' +
-                       '<br>Data: ' + agendamentoAtual.data + ' às ' + agendamentoAtual.horario + '?',
+                html: 'Deseja cancelar o agendamento de <strong>' + agendamentoAtual.paciente + '</strong>' +
+                    '<br>Data: ' + agendamentoAtual.data + ' às ' + agendamentoAtual.horario + '?',
                 icon: 'warning',
-                showCancelButton:   true,
+                showCancelButton: true,
                 confirmButtonColor: '#dc3545',
-                cancelButtonColor:  '#6c757d',
-                confirmButtonText:  'Sim, cancelar',
-                cancelButtonText:   'Voltar'
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Sim, cancelar',
+                cancelButtonText: 'Voltar'
             }).then(function(result) {
                 if (result.isConfirmed) {
 
                     fetch('cancelar_agendamento.php', {
-                        method:  'POST',
-                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                        body:    'id=' + agendamentoAtual.id
-                    })
-                    .then(function(response) { return response.json(); })
-                    .then(function(dados) {
-                        if (!dados.sucesso) {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/x-www-form-urlencoded'
+                            },
+                            body: 'id=' + agendamentoAtual.id
+                        })
+                        .then(function(response) {
+                            return response.json();
+                        })
+                        .then(function(dados) {
+                            if (!dados.sucesso) {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Erro',
+                                    text: dados.mensagem || 'Não foi possível cancelar o agendamento.',
+                                    confirmButtonColor: '#0d6efd'
+                                });
+                                return;
+                            }
+
+                            // Remove o card do calendário
+                            var card = document.querySelector('.card-agendamento[data-id="' + agendamentoAtual.id + '"]');
+                            if (card) {
+                                card.remove();
+                            }
+
+                            modalAgendamento.hide();
+
                             Swal.fire({
-                                icon:               'error',
-                                title:              'Erro',
-                                text:               dados.mensagem || 'Não foi possível cancelar o agendamento.',
+                                icon: 'success',
+                                title: 'Cancelado!',
+                                text: 'O agendamento foi cancelado com sucesso.',
+                                confirmButtonColor: '#0d6efd',
+                                timer: 2000,
+                                showConfirmButton: false
+                            }).then(function() {
+                                window.location.reload();
+                            });
+                        })
+                        .catch(function() {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Erro de comunicação',
+                                text: 'Não foi possível conectar ao servidor. Tente novamente.',
                                 confirmButtonColor: '#0d6efd'
                             });
-                            return;
-                        }
-
-                        // Remove o card do calendário
-                        var card = document.querySelector('.card-agendamento[data-id="' + agendamentoAtual.id + '"]');
-                        if (card) {
-                            card.remove();
-                        }
-
-                        modalAgendamento.hide();
-
-                        Swal.fire({
-                            icon:               'success',
-                            title:              'Cancelado!',
-                            text:               'O agendamento foi cancelado com sucesso.',
-                            confirmButtonColor: '#0d6efd',
-                            timer:              2000,
-                            showConfirmButton:  false
-                        }).then(function() {
-                            window.location.reload();
                         });
-                    })
-                    .catch(function() {
-                        Swal.fire({
-                            icon:               'error',
-                            title:              'Erro de comunicação',
-                            text:               'Não foi possível conectar ao servidor. Tente novamente.',
-                            confirmButtonColor: '#0d6efd'
-                        });
-                    });
                 }
             });
         });
@@ -777,13 +817,14 @@ $agendamentosFicticios = [
         document.querySelectorAll('.link-mais').forEach(function(link) {
             link.addEventListener('click', function() {
                 Swal.fire({
-                    icon:               'info',
-                    title:              'Em breve',
-                    text:               'Aqui será exibida a lista completa de agendamentos do dia.',
+                    icon: 'info',
+                    title: 'Em breve',
+                    text: 'Aqui será exibida a lista completa de agendamentos do dia.',
                     confirmButtonColor: '#0d6efd'
                 });
             });
         });
     </script>
 </body>
+
 </html>
