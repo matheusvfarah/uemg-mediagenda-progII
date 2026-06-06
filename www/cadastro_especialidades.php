@@ -6,6 +6,10 @@
 session_start();
 require_once("conexao.php");
 
+if (!headers_sent()) {
+    header('Content-Type: text/html; charset=utf-8');
+}
+
 if (!isset($_SESSION['cod_usuario'])) {
     header("Location: login.php");
     exit;
@@ -106,8 +110,7 @@ if ($resAll) {
     <link rel="icon" type="image/x-icon" href="img/favicon.ico">
 
     <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
-          integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome 6 -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
@@ -425,7 +428,7 @@ if ($resAll) {
     <aside class="sidebar" id="sidebar">
         <ul class="nav flex-column">
             <li class="nav-item">
-                <a class="nav-link" href="principal.php"><i class="fa-solid fa-calendar-days"></i> Calendário</a>
+                <a class="nav-link" href="principal.php"><i class="fa-solid fa-calendar-days"></i> Agenda</a>
             </li>
             <li class="nav-item">
                 <a class="nav-link" href="cadastro_agendas.php"><i class="fa-solid fa-calendar-plus"></i> Agendamentos</a>
@@ -435,6 +438,9 @@ if ($resAll) {
             </li>
             <li class="nav-item">
                 <a class="nav-link ativo" href="cadastro_especialidades.php"><i class="fa-solid fa-list-check"></i> Cadastro de Especialidades</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="regras_trabalho.php"><i class="fa-solid fa-clipboard-list"></i> Regras do trabalho</a>
             </li>
         </ul>
     </aside>
@@ -616,8 +622,7 @@ if ($resAll) {
     </div>
 
     <!-- ================ SCRIPTS ================ -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
-            integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
