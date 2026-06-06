@@ -9,18 +9,20 @@ CREATE DATABASE IF NOT EXISTS labdbprog2
 
 USE labdbprog2;
 
+
+--alteração na lógica de autenticação, agora salvando a senha como HASH no padrão SHA256
 create table if not exists usuario (
     cod_usuario int unsigned not null auto_increment,
     nome varchar(150) not null,
     email varchar(150) not null,
     username varchar(255) not null unique,
-    pass varchar(10) not null,
+    passWord_sha256 CHAR(64) not null,
     primary key (cod_usuario)
 ) engine=InnoDB default charset=utf8mb4 collate=utf8mb4_unicode_ci;
 
-insert into usuario (nome, email, username, pass) values
-    ('aluno', 'aluno@a', 'aluno', '123456'),
-    ('professor', 'professor@a', 'professor', 'professor123');
+insert into usuario (nome, email, username, passWord_sha256) values
+    ('aluno', 'aluno@a', 'aluno', SHA2('123456', 256)),
+    ('professor', 'professor@a', 'professor', SHA2('professor123', 256));
 
 -- ============================================================
 -- TABELA: especialidades
