@@ -7,16 +7,8 @@ if(!isset($_SESSION['cod_usuario'])){
     exit;
 }
 $cod_usuario = $_SESSION['cod_usuario'];
-$nomeUsuario = "";
-$emailUsuario = "";
-$sql = "SELECT * FROM usuario WHERE cod_usuario = '$cod_usuario'";
-
-$result = mysqli_query($conexao_bd,$sql); //pega o resultado da query e lança num array
-
-if($consulta = mysqli_fetch_assoc($result)){ //leitura do array
-    $nomeUsuario  = $consulta['nome'];
-    $emailUsuario = $consulta['email'];
-}
+$nomeUsuario = $_SESSION['nome'];
+$emailUsuario = $_SESSION['email'];
 
 /* ============================================================
    DADOS DO OPERADOR LOGADO
@@ -51,9 +43,9 @@ echo (">>> passou 0 | " . $_SERVER['REQUEST_METHOD']);
             $horario       = $_POST['horario'];
             $status        = $_POST['status'];
             $sql           = "INSERT INTO 
-                              agendamentos(paciente, medico_id, especialidade_id, data, horario, status) 
-                              VALUES('".$paciente."', ".$medico_id.", 1, '".$data."',
-                              '".$horario."', '".$status."')";
+                            agendamentos(paciente, medico_id, especialidade_id, data, horario, status) 
+                            VALUES('".$paciente."', ".$medico_id.", 1, '".$data."',
+                            '".$horario."', '".$status."')";
             mysqli_query($conexao_bd, $sql) or die('ERR: '.mysql_error());
            // INSERT INTO agendamentos (...) VALUES (...)
         } elseif ($acao === 'editar') {
@@ -65,12 +57,12 @@ echo (">>> passou 0 | " . $_SERVER['REQUEST_METHOD']);
             $status        = $_POST['status'];
             $id_agenda     = $_POST['id'];
             $sql = "UPDATE agendamentos SET 
-                     paciente = '".$paciente."',
-                     medico_id = ".$medico_id.",
-                     especialidade_id = 1, 
-                     data = '".$data."',
-                     horario = '".$horario."',
-                     status  = '".$status."'
+                    paciente = '".$paciente."',
+                    medico_id = ".$medico_id.",
+                    especialidade_id = 1, 
+                    data = '".$data."',
+                    horario = '".$horario."',
+                    status  = '".$status."'
                     WHERE id = ".$id_agenda;
             mysqli_query($conexao_bd, $sql) or die("ERR.: ".mysql_error());
         } elseif ($acao === 'cancelar') {
@@ -97,25 +89,6 @@ $filtroStatus   = trim(isset($_GET['status'])   ? $_GET['status']   : '');
 $filtroDataIni  = trim(isset($_GET['data_ini']) ? $_GET['data_ini'] : '');
 $filtroDataFim  = trim(isset($_GET['data_fim']) ? $_GET['data_fim'] : '');
 
-/* ============================================================
-   AGENDAMENTOS FICTÍCIOS (placeholder para visualização)
-   REMOVER QUANDO INTEGRAR COM O BANCO DE DADOS
-   TODO: Substituir por:
-   $agendamentos = buscarAgendamentos($filtroPaciente, $filtroMedico, $filtroStatus, $filtroDataIni, $filtroDataFim);
-============================================================ 
-$agendamentos = [
-    ['id' =>  1, 'data' => '2026-04-05', 'horario' => '09:00', 'paciente' => 'Maria Souza',     'medico' => 'Dr. Carlos Lima',  'especialidade' => 'Cardiologia',  'status' => 'Confirmado'],
-    ['id' =>  2, 'data' => '2026-04-08', 'horario' => '10:30', 'paciente' => 'Carlos Andrade',  'medico' => 'Dra. Ana Paula',   'especialidade' => 'Dermatologia', 'status' => 'Confirmado'],
-    ['id' =>  3, 'data' => '2026-04-08', 'horario' => '14:00', 'paciente' => 'Juliana Reis',    'medico' => 'Dr. Pedro Alves',  'especialidade' => 'Ortopedia',    'status' => 'Pendente'],
-    ['id' =>  4, 'data' => '2026-04-12', 'horario' => '08:00', 'paciente' => 'Pedro Henrique',  'medico' => 'Dra. Ana Paula',   'especialidade' => 'Dermatologia', 'status' => 'Confirmado'],
-    ['id' =>  5, 'data' => '2026-04-15', 'horario' => '11:00', 'paciente' => 'Júlia Mendes',    'medico' => 'Dr. Carlos Lima',  'especialidade' => 'Cardiologia',  'status' => 'Confirmado'],
-    ['id' =>  6, 'data' => '2026-04-15', 'horario' => '15:30', 'paciente' => 'Roberto Dias',    'medico' => 'Dr. Pedro Alves',  'especialidade' => 'Ortopedia',    'status' => 'Confirmado'],
-    ['id' =>  7, 'data' => '2026-04-15', 'horario' => '16:30', 'paciente' => 'Fernanda Costa',  'medico' => 'Dra. Marina Reis', 'especialidade' => 'Pediatria',    'status' => 'Pendente'],
-    ['id' =>  8, 'data' => '2026-04-15', 'horario' => '17:30', 'paciente' => 'Lucas Silva',     'medico' => 'Dr. Carlos Lima',  'especialidade' => 'Cardiologia',  'status' => 'Confirmado'],
-    ['id' =>  9, 'data' => '2026-04-20', 'horario' => '09:30', 'paciente' => 'Luiz Henrique',   'medico' => 'Dra. Marina Reis', 'especialidade' => 'Pediatria',    'status' => 'Confirmado'],
-    ['id' => 10, 'data' => '2026-04-23', 'horario' => '10:00', 'paciente' => 'Beatriz Ramos',   'medico' => 'Dra. Ana Paula',   'especialidade' => 'Dermatologia', 'status' => 'Pendente'],
-    ['id' => 11, 'data' => '2026-04-27', 'horario' => '14:00', 'paciente' => 'Marcos Vinícius', 'medico' => 'Dr. Pedro Alves',  'especialidade' => 'Ortopedia',    'status' => 'Confirmado'],
-];*/
 $sql = "SELECT * FROM vw_agendamentos";
 $result = mysqli_query($conexao_bd, $sql);
 while ($row = mysqli_fetch_assoc($result)) {

@@ -111,11 +111,11 @@ login.php
 
 # 👨‍💻 Integrantes do Grupo
 
-- Nome Completo 1
-- Nome Completo 2
-- Nome Completo 3
-- Nome Completo 4
-- Nome Completo 5
+- João Pedro de Almeida Modesto
+- Gustavo Vieira Barbosa
+- Gustavo Amaral
+- Maria Olivia Casucci
+- Matheus Vicente
 
 ---
 
