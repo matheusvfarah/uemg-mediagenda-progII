@@ -3,52 +3,63 @@
     $usuario = $_POST["usuario"];
     $senha = $_POST["senha"];
 
-    /*
-    //abrir banco de dados:
-    $host_bd = "localhost";
-    $login_bd = "root";
-    $password_bd = "";
-    $nome_bd = "labdbprog2";
-    $port = 3307;*/
-
-    //zerar as sessões:
     session_start();
-    $_SESSION["cod_usuario"] = "";
-    
-    //$conexao_bd = mysqli_connect($host_bd, $login_bd, $password_bd,$nome_bd, $port);
-    //$conectar = mysql_select_db($nome_bd, $conexao_bd);
+    //wtf, que lógica é essa? kkkk
+    //vamo melhorar isso ae pae, vai vendo, respeita o roxo
 
-    //conferir se o usuário está preenchido
-    //conferir se a senha está preenchida
-    if(strlen($usuario) > 0 && strlen($senha) > 0){
-        $sql = "SELECT * FROM usuario WHERE username = '$usuario'";
-        
-        $result = mysqli_query($conexao_bd,$sql); //pega o resultado da query e lança num array
-        
-        if($consulta = mysqli_fetch_assoc($result)){ //leitura do array
-            $cod_usuario = $consulta['cod_usuario'];
-            $nome        = $consulta['nome'];
-            $password    = $consulta['pass'];
-            
-            if(
-                strtoupper(ltrim(rtrim($senha))) == 
-                strtoupper(ltrim(rtrim($password)))
-            ){
-                //usuário autenticado!
-                $_SESSION["cod_usuario"] = $cod_usuario;
-                header("location:principal.php");
-                //echo("Conectou!");
-            }else{
-                //usuário não autenticado
-                header("location:index.php");
-                //echo("Não conectou :(");
+    if(isset($usuario) && isset($senha)){
+
+        //prepared statements parav evitar SQL injection, respeita o ROXO
+        $sql = "SELECT email, username, passWord_sha256 FROM usuario WHERE username = ? OR email = ?";
+
+        if($stmt = mysqli_prepare($conexao_bd, $sql)){
+            mysqli_stmt_bind_param($stmt, "ss", $usuario, $usuario);
+            mysqli_stmt_execute($stmt);
+            mysqli_stmt_store_result($stmt);
+
+            if(mysqli_stmt_num_rows($stmt) == 1){
+                mysqli_stmt_bind_result($stmt, $email_bd, $username_bd, $passWord_sha256);
+                mysqli_stmt_fetch($stmt);
+
+                if(hash("sha256", $senha) === $passWord_sha256){
+                    //autenticado com sucesso
+                    $_SESSION["logado"] = true;
+                    $_SESSION["username"] = $username_bd;
+                    $_SESSION["email"] = $email_bd;
+
+                    echo json_encode([
+                        "success" => true,
+                        "message" => "Autenticado com sucesso!"
+                    ]);
+                    exit;
+                } else {
+                    //senha incorreta
+                    echo json_encode([
+                        "success" => false,
+                        "message" => "Senha incorreta. Verifique!"
+                    ]);
+                    exit;
+                }
+            } else {
+                //usuário não encontrado
+                echo json_encode([
+                    "success" => false,
+                    "message" => "Usuário não encontrado"
+                ]);
+                exit;
             }
-        }else{
-            echo "‼ Não achei o usuário!!!";
+
+            mysqli_stmt_close($stmt);
+        } else {
+            //erro na preparação da consulta
+            echo json_encode([
+                "success" => false,
+                "message" => "Erro na preparação da consulta."
+            ]);
+            exit;
         }
-    }else{
-        echo "Não achei o usuário!!!";
     }
+
     //validar no banco de dados
     //ir para página autenticada
     //ou retornar para index
