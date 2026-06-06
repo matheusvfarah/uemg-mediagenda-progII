@@ -1,16 +1,8 @@
 <?php
-session_start();
-require_once("conexao.php"); // importar o conexao.php para esta página
+require_once __DIR__ . '/includes/bootstrap.php';
+require_once __DIR__ . '/includes/shell.php';
 
-if (!isset($_SESSION['cod_usuario'])) {
-    header("Location: login.php");
-    exit;
-}
-
-//pegando todos os dadods que sempre serão necessrios e armazenando os nas variaveis de sessão, respeita o roxo
-$cod_usuario = $_SESSION['cod_usuario'];
-$nomeUsuario = $_SESSION['nome'];
-$emailUsuario = $_SESSION['email'];
+$usuarioLogado = mediagenda_require_login();
 
 /* ============================================================
    principal.php - Dashboard de Agendamento de Consultas Médicas
@@ -28,8 +20,8 @@ $emailUsuario = $_SESSION['email'];
    DADOS DO OPERADOR LOGADO
    TODO: Substituir pelos dados vindos da $_SESSION
 ============================================================ */
-$operadorNome  = $nomeUsuario; //"Dr. João Silva";
-$operadorEmail = $emailUsuario; //"joao.silva@clinica.com";
+$operadorNome  = $usuarioLogado['nome'];
+$operadorEmail = $usuarioLogado['email'];
 
 /* ============================================================
    DADOS DO MÊS ATUAL (cálculo do calendário)
@@ -76,8 +68,10 @@ if ($proximoMes > 12) {
 }
 
 
+$agendamentosFicticios = [];
 $sql = "select *, DAY(data) diaAgenda from vw_agendamentos where MONTH(data) = $mesAtual AND YEAR(data) = $anoAtual";
 $result = mysqli_query($conexao_bd, $sql);
+if ($result) {
 while ($row = $result->fetch_assoc()) {
     //echo ">>>" . $row["paciente"]." | ". $row["data"] . " | " . $row["diaAgenda"] . "<br>";
     $agendamentosFicticios[$row["diaAgenda"]][] = [
@@ -89,209 +83,11 @@ while ($row = $result->fetch_assoc()) {
         'status'        => $row["status"]
     ];
 }
+}
 
 ?>
-<!DOCTYPE html>
-<html lang="pt-BR">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MediAgenda - Painel Principal</title>
-
-    <!-- Favicon -->
-    <link rel="icon" type="image/x-icon" href="img/favicon.ico">
-
-    <!-- ================ CDNs ================ -->
-    <!-- Bootstrap 5 CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
-        integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
-    <!-- Font Awesome 6 -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-
-    <!-- ================ ESTILOS DA APLICAÇÃO ================ -->
+<?php mediagenda_render_head('MediAgenda - Painel Principal'); ?>
     <style>
-        :root {
-            --azul-primario: #0d6efd;
-            --azul-escuro: #084298;
-            --azul-claro: #e7f1ff;
-            --cinza-fundo: #f5f7fa;
-            --cinza-borda: #e3e6ea;
-            --texto-escuro: #1f2d3d;
-            --sidebar-larg: 250px;
-        }
-
-        body {
-            background-color: var(--cinza-fundo);
-            font-family: 'Segoe UI', Tahoma, sans-serif;
-            color: var(--texto-escuro);
-            overflow-x: hidden;
-        }
-
-        /* ==================== NAVBAR SUPERIOR ==================== */
-        .navbar-topo {
-            background: linear-gradient(90deg, var(--azul-primario) 0%, var(--azul-escuro) 100%);
-            height: 60px;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1030;
-        }
-
-        .navbar-topo .navbar-brand {
-            color: #fff;
-            font-weight: 600;
-            font-size: 1.25rem;
-        }
-
-        .navbar-topo .navbar-brand i {
-            margin-right: 8px;
-        }
-
-        .btn-sanduiche {
-            background: transparent;
-            border: none;
-            color: #fff;
-            font-size: 1.3rem;
-            padding: 6px 12px;
-            border-radius: 6px;
-            transition: background 0.2s;
-        }
-
-        .btn-sanduiche:hover {
-            background: rgba(255, 255, 255, 0.15);
-        }
-
-        .operador-toggle {
-            background: transparent;
-            border: none;
-            color: #fff;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            padding: 6px 12px;
-            border-radius: 30px;
-            transition: background 0.2s;
-        }
-
-        .operador-toggle:hover,
-        .operador-toggle:focus {
-            background: rgba(255, 255, 255, 0.15);
-            color: #fff;
-        }
-
-        .operador-toggle i.fa-circle-user {
-            font-size: 1.6rem;
-        }
-
-        .dropdown-menu-operador {
-            min-width: 220px;
-            border-radius: 10px;
-            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
-            border: none;
-        }
-
-        .dropdown-menu-operador .dropdown-item i {
-            width: 22px;
-            color: var(--azul-primario);
-        }
-
-        /* ==================== SIDEBAR LATERAL ==================== */
-        .sidebar {
-            position: fixed;
-            top: 60px;
-            left: 0;
-            width: var(--sidebar-larg);
-            height: calc(100vh - 60px);
-            background: #fff;
-            border-right: 1px solid var(--cinza-borda);
-            padding: 20px 0;
-            transition: transform 0.3s ease;
-            z-index: 1020;
-            overflow-y: auto;
-        }
-
-        .sidebar.oculta {
-            transform: translateX(calc(var(--sidebar-larg) * -1));
-        }
-
-        .sidebar .nav-link {
-            color: var(--texto-escuro);
-            padding: 12px 20px;
-            border-left: 3px solid transparent;
-            transition: all 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-
-        .sidebar .nav-link i {
-            width: 22px;
-            color: var(--azul-primario);
-            font-size: 1.05rem;
-        }
-
-        .sidebar .nav-link:hover {
-            background: var(--azul-claro);
-            border-left-color: var(--azul-primario);
-            color: var(--azul-escuro);
-        }
-
-        .sidebar .nav-link.ativo {
-            background: var(--azul-claro);
-            border-left-color: var(--azul-primario);
-            color: var(--azul-escuro);
-            font-weight: 600;
-        }
-
-        /* Overlay (em mobile, escurece o fundo quando sidebar aberta) */
-        .sidebar-overlay {
-            display: none;
-            position: fixed;
-            top: 60px;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.4);
-            z-index: 1010;
-        }
-
-        .sidebar-overlay.ativo {
-            display: block;
-        }
-
-        /* ==================== CONTEÚDO PRINCIPAL ==================== */
-        .conteudo-principal {
-            margin-top: 60px;
-            margin-left: var(--sidebar-larg);
-            padding: 25px;
-            transition: margin-left 0.3s ease;
-            min-height: calc(100vh - 60px);
-        }
-
-        .conteudo-principal.expandido {
-            margin-left: 0;
-        }
-
-        /* Em telas pequenas, sidebar vira overlay e conteúdo ocupa tela toda */
-        @media (max-width: 991.98px) {
-            .sidebar {
-                transform: translateX(calc(var(--sidebar-larg) * -1));
-            }
-
-            .sidebar.aberta {
-                transform: translateX(0);
-                box-shadow: 2px 0 12px rgba(0, 0, 0, 0.15);
-            }
-
-            .conteudo-principal {
-                margin-left: 0;
-            }
-        }
-
-        /* ==================== CALENDÁRIO ==================== */
         .card-calendario {
             background: #fff;
             border-radius: 12px;
@@ -407,6 +203,19 @@ while ($row = $result->fetch_assoc()) {
             transform: translateX(2px);
         }
 
+        /* Estado quando o agendamento foi cancelado */
+        .card-agendamento.cancelado {
+            background: #f8d7da; /* bootstrap danger bg */
+            border-left: 3px solid #dc3545;
+            color: #842029;
+        }
+
+        .card-agendamento.cancelado:hover {
+            background: #f5c2c7;
+            color: #842029;
+            transform: none;
+        }
+
         .card-agendamento .horario {
             font-weight: 600;
         }
@@ -463,70 +272,8 @@ while ($row = $result->fetch_assoc()) {
             margin-right: 8px;
         }
     </style>
-</head>
-
-<body>
-
-    <!-- ==================================================
-         NAVBAR SUPERIOR
-    ================================================== -->
-    <nav class="navbar-topo d-flex align-items-center justify-content-between px-3">
-        <!-- Lado esquerdo: sanduíche + logo + título -->
-        <div class="d-flex align-items-center gap-2">
-            <button class="btn-sanduiche" id="btnSanduiche" title="Menu">
-                <i class="fa-solid fa-bars"></i>
-            </button>
-            <a class="navbar-brand mb-0 d-flex align-items-center" href="#">
-                <i class="fa-solid fa-stethoscope"></i>
-                <span>MediAgenda</span>
-            </a>
-        </div>
-
-        <!-- Lado direito: dropdown do operador -->
-        <div class="dropdown">
-            <button class="operador-toggle" type="button" id="dropdownOperador" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="fa-solid fa-circle-user"></i>
-                <span class="d-none d-md-inline"><?php echo ($operadorNome); ?></span>
-                <i class="fa-solid fa-chevron-down" style="font-size: 0.75rem;"></i>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end dropdown-menu-operador" aria-labelledby="dropdownOperador">
-                <li><a class="dropdown-item" href="#"><i class="fa-solid fa-user"></i><?php echo htmlspecialchars($operadorNome) ?></a></li>
-                <li><a class="dropdown-item" href="#"><i class="fa-solid fa-envelope"></i><?php echo htmlspecialchars($operadorEmail) ?></a></li>
-                <li>
-                    <hr class="dropdown-divider">
-                </li>
-                <li><a class="dropdown-item" href="#"><i class="fa-solid fa-gear"></i>Configurações</a></li>
-                <li><a class="dropdown-item" href="logout.php"><i class="fa-solid fa-right-from-bracket"></i>Sair</a></li>
-            </ul>
-        </div>
-    </nav>
-
-    <!-- ==================================================
-         SIDEBAR LATERAL
-    ================================================== -->
-    <aside class="sidebar" id="sidebar">
-        <ul class="nav flex-column">
-            <li class="nav-item">
-                <a class="nav-link ativo" href="principal.php"><i class="fa-solid fa-calendar-days"></i> Calendário</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="cadastro_agendas.php"><i class="fa-solid fa-calendar-plus"></i> Agendamentos</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="cadastro_medicos.php"><i class="fa-solid fa-user-doctor"></i> Cadastro de Médicos</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="cadastro_especialidades.php"><i class="fa-solid fa-list-check"></i> Cadastro de Especialidades</a>
-            </li>
-        </ul>
-    </aside>
-
-    <!-- Overlay para mobile -->
-    <div class="sidebar-overlay" id="sidebarOverlay"></div>
-
-    <!-- ==================================================
-         CONTEÚDO PRINCIPAL - CALENDÁRIO
-    ================================================== -->
+    <?php mediagenda_render_topbar($usuarioLogado); ?>
+    <?php mediagenda_render_sidebar('principal.php'); ?>
     <main class="conteudo-principal" id="conteudoPrincipal">
 
         <div class="card-calendario">
@@ -597,7 +344,7 @@ while ($row = $result->fetch_assoc()) {
                         foreach ($exibir as $agend):
                         ?>
                             <!-- ====== Template do card de agendamento (clicável → modal) ====== -->
-                            <div class="card-agendamento"
+                            <div class="card-agendamento<?php echo ($agend['status'] === 'Cancelado') ? ' cancelado' : '' ?>"
                                 data-id="<?php echo $agend['id'] ?>"
                                 data-horario="<?php echo htmlspecialchars($agend['horario']) ?>"
                                 data-paciente="<?php echo htmlspecialchars($agend['paciente']) ?>"
@@ -622,9 +369,6 @@ while ($row = $result->fetch_assoc()) {
 
     </main>
 
-    <!-- ==================================================
-         MODAL DE DETALHES DO AGENDAMENTO
-    ================================================== -->
     <div class="modal fade modal-detalhe" id="modalAgendamento" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
@@ -670,48 +414,7 @@ while ($row = $result->fetch_assoc()) {
         </div>
     </div>
 
-    <!-- ================ SCRIPTS ================ -->
-    <!-- Bootstrap 5 JS Bundle -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
-        integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
-    <!-- SweetAlert2 -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
     <script>
-        // ==================================================
-        // TOGGLE DA SIDEBAR (responsivo)
-        // ==================================================
-        const btnSanduiche = document.getElementById('btnSanduiche');
-        const sidebar = document.getElementById('sidebar');
-        const conteudoPrincipal = document.getElementById('conteudoPrincipal');
-        const sidebarOverlay = document.getElementById('sidebarOverlay');
-
-        btnSanduiche.addEventListener('click', () => {
-            if (window.innerWidth <= 991.98) {
-                // Mobile: usa overlay
-                sidebar.classList.toggle('aberta');
-                sidebarOverlay.classList.toggle('ativo');
-            } else {
-                // Desktop: oculta/mostra a sidebar e expande/contrai o conteúdo
-                sidebar.classList.toggle('oculta');
-                conteudoPrincipal.classList.toggle('expandido');
-            }
-        });
-
-        // Clicar no overlay (mobile) fecha a sidebar
-        sidebarOverlay.addEventListener('click', () => {
-            sidebar.classList.remove('aberta');
-            sidebarOverlay.classList.remove('ativo');
-        });
-
-        // Ao redimensionar, limpa estados que não fazem sentido no novo layout
-        window.addEventListener('resize', () => {
-            if (window.innerWidth > 991.98) {
-                sidebar.classList.remove('aberta');
-                sidebarOverlay.classList.remove('ativo');
-            }
-        });
-
         // ==================================================
         // CLIQUE NO CARD DE AGENDAMENTO → ABRE MODAL
         // ==================================================
@@ -825,6 +528,4 @@ while ($row = $result->fetch_assoc()) {
             });
         });
     </script>
-</body>
-
-</html>
+    <?php mediagenda_render_footer(); ?>
